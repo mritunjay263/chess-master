@@ -1,0 +1,29 @@
+// src/constants/socketEvents.ts — single source of truth for socket event names
+export const SOCKET_EMIT = {
+  JOIN_QUEUE: 'join_queue',
+  LEAVE_QUEUE: 'leave_queue',
+  MOVE: 'move',
+  RESIGN: 'resign',
+  OFFER_DRAW: 'offer_draw',
+  ACCEPT_DRAW: 'accept_draw',
+  DECLINE_DRAW: 'decline_draw',
+  REMATCH_REQUEST: 'rematch_request',
+  REMATCH_ACCEPT: 'rematch_accept',
+  REMATCH_DECLINE: 'rematch_decline',
+  LEAVE_GAME: 'leave_game',
+  REJOIN_GAME: 'rejoin_game',
+} as const;
+
+export const SOCKET_ON = {
+  MATCH_FOUND: 'match_found',
+  MOVE_MADE: 'move_made',
+  GAME_OVER: 'game_over',
+  DRAW_OFFERED: 'draw_offered',
+  DRAW_DECLINED: 'draw_declined',
+  REMATCH_OFFERED: 'rematch_offered',
+  REMATCH_READY: 'rematch_ready',
+  OPPONENT_LEFT: 'opponent_left',
+  ERROR: 'error',
+  ONLINE_COUNT: 'online_count',
+  STATE_SYNC: 'state_sync',
+} as const;

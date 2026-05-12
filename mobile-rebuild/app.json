@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "ChessMate",
+    "slug": "chessmate",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0F1418"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chessmate.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1418"
+      },
+      "package": "com.chessmate.app"
+    },
+    "plugins": [
+      "expo-audio"
+    ]
+  }
+}

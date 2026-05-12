@@ -1,0 +1,392 @@
+
+> chessmate-backend@1.0.0 dev
+> nodemon
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-09T07:36:27.875Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-09T07:36:27.876Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-09T07:36:27.876Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-09T07:36:27.877Z] [INFO] [server] Server running on port 3000 
+[2026-05-09T14:59:24.092Z] [INFO] [auth-service] User logged in { userId: '28ae6b96-7f27-4164-b4d4-9cad08daae20' }
+[2026-05-09T14:59:48.047Z] [INFO] [matchmaking-service] Player removed from queue { userId: '28ae6b96-7f27-4164-b4d4-9cad08daae20' }
+[2026-05-09T15:00:57.248Z] [INFO] [auth-service] User logged in { userId: 'f1eac854-bc3c-42e0-9e8f-c4a4b3227b28' }
+[2026-05-09T15:01:39.394Z] [INFO] [matchmaking-service] Player removed from queue { userId: 'f1eac854-bc3c-42e0-9e8f-c4a4b3227b28' }
+[2026-05-09T15:01:40.868Z] [INFO] [matchmaking-service] Player removed from queue { userId: '28ae6b96-7f27-4164-b4d4-9cad08daae20' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[2026-05-10T08:13:22.202Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T08:13:22.211Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T08:13:22.211Z] [INFO] [game-socket] Game socket initialized 
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at startServer (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:19:20)
+    at Object.<anonymous> (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:28:1)
+    at Module._compile (node:internal/modules/cjs/loader:1738:14)
+    at Object..js (node:internal/modules/cjs/loader:1871:10)
+    at Module.load (node:internal/modules/cjs/loader:1470:32)
+    at Module._load (node:internal/modules/cjs/loader:1290:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.7.0
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T08:13:22.729Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T08:13:22.731Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T08:13:22.731Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T08:13:22.733Z] [INFO] [server] Server running on port 3000 
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T08:14:03.601Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T08:14:03.602Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T08:14:03.602Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T08:14:03.603Z] [INFO] [server] Server running on port 3000 
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[2026-05-10T08:57:07.838Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T08:57:07.840Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T08:57:07.840Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T08:57:07.840Z] [INFO] [server] Server running on port 3000 
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T08:57:08.589Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T08:57:08.590Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T08:57:08.591Z] [INFO] [game-socket] Game socket initialized 
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at startServer (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:19:20)
+    at Object.<anonymous> (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:28:1)
+    at Module._compile (node:internal/modules/cjs/loader:1738:14)
+    at Object..js (node:internal/modules/cjs/loader:1871:10)
+    at Module.load (node:internal/modules/cjs/loader:1470:32)
+    at Module._load (node:internal/modules/cjs/loader:1290:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.7.0
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[2026-05-10T11:25:09.357Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:25:09.359Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:25:09.359Z] [INFO] [game-socket] Game socket initialized 
+[32m[nodemon] restarting due to changes...[39m
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at startServer (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:19:20)
+    at Object.<anonymous> (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:28:1)
+    at Module._compile (node:internal/modules/cjs/loader:1738:14)
+    at Object..js (node:internal/modules/cjs/loader:1871:10)
+    at Module.load (node:internal/modules/cjs/loader:1470:32)
+    at Module._load (node:internal/modules/cjs/loader:1290:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.7.0
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:25:09.806Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:25:09.810Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:25:09.810Z] [INFO] [game-socket] Game socket initialized 
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at startServer (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:19:20)
+    at Object.<anonymous> (/Users/mritunjay/Documents/Dev/opencode-projects/backend-new/dist/server.js:28:1)
+    at Module._compile (node:internal/modules/cjs/loader:1738:14)
+    at Object..js (node:internal/modules/cjs/loader:1871:10)
+    at Module.load (node:internal/modules/cjs/loader:1470:32)
+    at Module._load (node:internal/modules/cjs/loader:1290:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.7.0
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:42:58.273Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:42:58.275Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:42:58.275Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T11:42:58.276Z] [INFO] [server] Server running on port 3000 
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:42:59.210Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:42:59.212Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:42:59.212Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T11:42:59.213Z] [INFO] [server] Server running on port 3000 
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:44:32.429Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:44:32.431Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:44:32.431Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T11:44:32.433Z] [INFO] [server] Server running on port 3000 
+[2026-05-10T11:44:39.824Z] [INFO] [matchmaking-service] Player added to queue { userId: 'player-a-id', queueLength: 1 }
+[2026-05-10T11:44:39.830Z] [INFO] [matchmaking-service] Player added to queue { userId: 'player-b-id', queueLength: 2 }
+[2026-05-10T11:44:40.441Z] [INFO] [matchmaking-service] Players matched {
+  gameId: '3be46aa0-a5d0-434d-9b9a-a54302aba445',
+  white: 'player-b-id',
+  black: 'player-a-id'
+}
+[2026-05-10T11:44:40.456Z] [ERROR] [matchmaking-scheduler] Matchmaking error { error: 'Players not found' }
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:45:49.253Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:45:49.255Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:45:49.255Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T11:45:49.256Z] [INFO] [server] Server running on port 3000 
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T11:47:59.814Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T11:47:59.816Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T11:47:59.816Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T11:47:59.817Z] [INFO] [server] Server running on port 3000 
+[2026-05-10T11:48:02.938Z] [INFO] [matchmaking-service] Player removed from queue { userId: 'f1eac854-bc3c-42e0-9e8f-c4a4b3227b28' }
+[2026-05-10T11:48:04.602Z] [INFO] [matchmaking-service] Player removed from queue { userId: '28ae6b96-7f27-4164-b4d4-9cad08daae20' }
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T13:52:55.367Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T13:52:55.368Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T13:52:55.368Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T13:52:55.369Z] [INFO] [server] Server running on port 3000 
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node dist/server.js`[39m
+[2026-05-10T13:59:37.822Z] [INFO] [socket-events] Socket events setup complete 
+[2026-05-10T13:59:37.824Z] [INFO] [matchmaking-scheduler] Matchmaking scheduler started 
+[2026-05-10T13:59:37.824Z] [INFO] [game-socket] Game socket initialized 
+[2026-05-10T13:59:37.826Z] [INFO] [server] Server running on port 3000 
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

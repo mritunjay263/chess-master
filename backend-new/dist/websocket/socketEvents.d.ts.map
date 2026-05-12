@@ -1,0 +1,1 @@
+{"version":3,"file":"socketEvents.d.ts","sourceRoot":"","sources":["../../src/websocket/socketEvents.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAU,MAAM,WAAW,CAAC;AAY3C,eAAO,MAAM,iBAAiB,GAAI,IAAI,MAAM,KAAG,IAgH9C,CAAC;AAEF,eAAO,MAAM,eAAe,GAAI,QAAQ,MAAM,KAAG,MAAM,GAAG,SAAoC,CAAC"}
