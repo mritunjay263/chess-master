@@ -2,6 +2,7 @@
 // Move animation: piece slides from previous square to current square using
 // withTiming(150ms, Easing.out(Easing.quad)) — runs on the UI thread.
 import React, { useEffect, memo } from 'react';
+import { View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -45,21 +46,19 @@ function AnimatedPieceImpl({ piece, tileSize, flipped, previousSquare }: Props) 
   }));
 
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: 'absolute',
-          width: tileSize,
-          height: tileSize,
-          left: 0,
-          top: 0,
-        },
-        animatedStyle,
-      ]}
-    >
-      <ChessPiece type={piece.type} color={piece.color} size={tileSize} />
-    </Animated.View>
+    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0 }}>
+      <Animated.View
+        style={[
+          {
+            width: tileSize,
+            height: tileSize,
+          },
+          animatedStyle,
+        ]}
+      >
+        <ChessPiece type={piece.type} color={piece.color} size={tileSize} />
+      </Animated.View>
+    </View>
   );
 }
 

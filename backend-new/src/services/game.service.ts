@@ -63,6 +63,7 @@ export class GameService {
       whiteTime: GAME_CONFIG.INITIAL_TIME, blackTime: GAME_CONFIG.INITIAL_TIME,
       moveHistory: [], status: 'in_progress',
     };
+    (session as any)._startedAt = Date.now();
     gameSessions.set(gameId, session);
     clockStore.set(`clock:${gameId}:${whitePlayerId}`, GAME_CONFIG.INITIAL_TIME);
     clockStore.set(`clock:${gameId}:${blackPlayerId}`, GAME_CONFIG.INITIAL_TIME);
@@ -99,13 +100,35 @@ export class GameService {
     if (session.turn !== expectedTurn) return { success: false, session, error: 'Not your turn' };
     const moveResult = validateMove(session.fen, from, to, promotion);
     if (!moveResult.valid) return { success: false, session, error: 'Invalid move' };
-    
-    const moveRecord = { from, to, san: moveResult.san || '', fen: moveResult.fen || session.fen, timestamp: Date.now(), promotion };
+
+    // --- Clock management: decrement moving player's time ---
+    const now = Date.now();
+    const lastMoveTs = session.moveHistory.length > 0
+      ? session.moveHistory[session.moveHistory.length - 1].timestamp
+      : (session as any)._startedAt ?? now;
+    const elapsed = Math.max(0, now - lastMoveTs);
+    if (isWhitePlayer) {
+      session.whiteTime = Math.max(0, session.whiteTime - elapsed);
+    } else {
+      session.blackTime = Math.max(0, session.blackTime - elapsed);
+    }
+    // Check for timeout
+    if (session.whiteTime <= 0 || session.blackTime <= 0) {
+      const timedOutColor = session.whiteTime <= 0 ? 'w' : 'b';
+      const updatedSession: GameSession = {
+        ...session,
+        status: timedOutColor === 'w' ? 'black_wins' : 'white_wins',
+      };
+      gameSessions.set(gameId, updatedSession);
+      await this.handleGameEnd(gameId, updatedSession, 'timeout');
+      return { success: false, session: updatedSession, error: 'Time expired' };
+    }
+
+    const moveRecord = { from, to, san: moveResult.san || '', fen: moveResult.fen || session.fen, timestamp: now, promotion, captured: moveResult.captured, check: moveResult.check, piece: expectedTurn === 'w' ? undefined : undefined };
     const updatedSession: GameSession = { ...session, fen: moveResult.fen!, turn: session.turn === 'w' ? 'b' : 'w', moveHistory: [...session.moveHistory, moveRecord] };
     const gameOver = isGameOver(moveResult.fen!);
     if (gameOver.over) {
       if (gameOver.result === 'checkmate') {
-        // The player who just moved delivered checkmate
         updatedSession.status = isWhitePlayer ? 'white_wins' : 'black_wins';
       } else if (gameOver.result === 'stalemate') {
         updatedSession.status = 'stalemate';
@@ -115,56 +138,62 @@ export class GameService {
     }
 
     gameSessions.set(gameId, updatedSession);
-    this.io?.to(gameId).emit('game_state', {
-      gameId,
+
+    // Emit move_made in the format the mobile client expects
+    const movePayload = {
+      from,
+      to,
+      promotion,
+      san: moveResult.san,
+      captured: moveResult.captured ? true : undefined,
+      color: expectedTurn,
+      piece: undefined as string | undefined,
+    };
+    this.io?.to(gameId).emit('move_made', {
+      matchId: gameId,
+      move: movePayload,
       fen: updatedSession.fen,
       turn: updatedSession.turn,
-      whiteTime: updatedSession.whiteTime,
-      blackTime: updatedSession.blackTime,
-      moveHistory: updatedSession.moveHistory,
-      status: updatedSession.status,
-      lastMove: {
-        from,
-        to,
-        promotion,
-        captured: moveResult.captured,
-        check: moveResult.check
-      }
+      times: {
+        whiteMs: updatedSession.whiteTime,
+        blackMs: updatedSession.blackTime,
+        serverTimestamp: now,
+      },
     });
 
     if (gameOver.over) await this.handleGameEnd(gameId, updatedSession);
     return { success: true, session: updatedSession };
   }
 
-  async handleGameEnd(gameId: string, session: GameSession) {
+  async handleGameEnd(gameId: string, session: GameSession, overrideReason?: string) {
     // Determine winner and reason based on session status
-    let winner: 'white' | 'black' | 'draw' = 'draw';
-    let reason: string = 'game_over';
+    let winnerColor: 'w' | 'b' | null = null;
+    let reason: string = overrideReason || 'game_over';
 
     if (session.status === 'white_wins') {
-      winner = 'white';
-      reason = 'checkmate';
+      winnerColor = 'w';
+      if (!overrideReason) reason = 'checkmate';
     } else if (session.status === 'black_wins') {
-      winner = 'black';
-      reason = 'checkmate';
+      winnerColor = 'b';
+      if (!overrideReason) reason = 'checkmate';
     } else if (session.status === 'stalemate') {
-      winner = 'draw';
+      winnerColor = null;
       reason = 'stalemate';
     } else if (session.status === 'draw') {
-      winner = 'draw';
-      reason = 'draw'; // This could be insufficient material, fifty-move rule, etc.
+      winnerColor = null;
+      reason = overrideReason || 'draw';
     } else if (session.status === 'white_resigned') {
-      winner = 'black';
+      winnerColor = 'b';
       reason = 'resignation';
     } else if (session.status === 'black_resigned') {
-      winner = 'white';
+      winnerColor = 'w';
       reason = 'resignation';
     }
 
     // Calculate ELO changes
-    const isWhiteWinner = winner === 'white';
-    const isBlackWinner = winner === 'black';
-    const isDraw = winner === 'draw';
+    const isWhiteWinner = winnerColor === 'w';
+    const isBlackWinner = winnerColor === 'b';
+    const isDraw = winnerColor === null;
 
     const whiteEloChange = isWhiteWinner
       ? calculateEloChange(session.whiteElo, session.blackElo, 'win')
@@ -178,14 +207,14 @@ export class GameService {
         ? calculateEloChange(session.blackElo, session.whiteElo, 'loss')
         : calculateEloChange(session.blackElo, session.whiteElo, 'draw');
 
-    // Emit game over event with proper data
+    // Emit game over event — use matchId and 'w'/'b' format for mobile client
     this.io?.to(gameId).emit('game_over', {
-      gameId,
-      winner,
+      matchId: gameId,
+      winner: winnerColor,
       reason,
       whiteEloChange,
       blackEloChange,
-      fen: session.fen
+      fen: session.fen,
     });
 
     // Update database
@@ -228,7 +257,7 @@ export class GameService {
       // Update game record (Prisma Game model does not store player ELOs)
       await prisma.game.update({ where: { id: gameId }, data: {
         status: dbStatus,
-        winner: winner === 'white' ? session.whitePlayerId : winner === 'black' ? session.blackPlayerId : null,
+        winner: winnerColor === 'w' ? session.whitePlayerId : winnerColor === 'b' ? session.blackPlayerId : null,
         reason,
         completedAt: new Date(),
         pgn: '' // We could populate this with actual PGN if needed
@@ -243,8 +272,28 @@ export class GameService {
     if (userId !== session.whitePlayerId && userId !== session.blackPlayerId) return { success: false, error: 'Not a player' };
     const updatedSession: GameSession = { ...session, status: isWhite ? 'white_resigned' : 'black_resigned' };
     gameSessions.set(gameId, updatedSession);
-    await this.handleGameEnd(gameId, updatedSession);
+    await this.handleGameEnd(gameId, updatedSession, 'resignation');
     return { success: true };
+  }
+
+  async handleTimeout(gameId: string, flaggedColor: 'w' | 'b') {
+    const session = await this.getGameSession(gameId);
+    if (!session || session.status !== 'in_progress') return;
+    // The flagged color loses
+    const updatedSession: GameSession = {
+      ...session,
+      status: flaggedColor === 'w' ? 'black_wins' : 'white_wins',
+    };
+    gameSessions.set(gameId, updatedSession);
+    await this.handleGameEnd(gameId, updatedSession, 'timeout');
+  }
+
+  async acceptDraw(gameId: string) {
+    const session = await this.getGameSession(gameId);
+    if (!session || session.status !== 'in_progress') return;
+    const updatedSession: GameSession = { ...session, status: 'draw' };
+    gameSessions.set(gameId, updatedSession);
+    await this.handleGameEnd(gameId, updatedSession, 'draw_agreed');
   }
 
   async getGameHistory(userId: string, limit = 20, offset = 0) {

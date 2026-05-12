@@ -8,7 +8,7 @@
 //   BUG-5: server timestamp drives the timer (useTimer)
 //   BUG-6: rematch flow with explicit accept/decline + resetGame
 //   BUG-7: check/checkmate/draw announced via banner + haptic + sound
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -55,6 +55,14 @@ export const GameScreen: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [resignConfirm, setResignConfirm] = useState(false);
 
+  // Stable refs for chess callbacks used inside the socket effect
+  // (avoids putting the entire `chess` object in the effect deps, which would
+  // re-run the effect on every render and re-emit rejoin_game → state_sync → deselect)
+  const applyRemoteRef = useRef(chess.applyRemote);
+  applyRemoteRef.current = chess.applyRemote;
+  const loadFenRef = useRef(chess.loadFen);
+  loadFenRef.current = chess.loadFen;
+
   // ----- Initialise/reset gameStore on match change (BUG-1) -----
   useEffect(() => {
     useGameStore.getState().startMatch({
@@ -83,7 +91,7 @@ export const GameScreen: React.FC = () => {
       // The local player applied their own move optimistically before emitting.
       const isOurMove = data.move.color === myColor;
       if (!isOurMove) {
-        chess.applyRemote(data.move);
+        applyRemoteRef.current(data.move);
         soundManager.play(SOUND_KEYS.MOVE_OPPONENT);
       }
       // Always sync server times
@@ -139,7 +147,7 @@ export const GameScreen: React.FC = () => {
     };
 
     const onStateSync = (data: { fen: string; moves: ChessMove[]; times: ServerTimes; turn: Color }) => {
-      chess.loadFen(data.fen);
+      loadFenRef.current(data.fen);
       useGameStore.getState().syncTimes(data.times);
     };
 
@@ -165,7 +173,7 @@ export const GameScreen: React.FC = () => {
       socket.off(SOCKET_ON.STATE_SYNC, onStateSync);
       socket.off(SOCKET_ON.OPPONENT_LEFT, onOpponentLeft);
     };
-  }, [socket, matchId, myColor, chess, haptics, emit, nav, user]);
+  }, [socket, matchId, myColor, emit, nav, user]);
 
   // ----- Per-move side effects: sounds & haptics & check announcement (BUG-7) -----
   const lastMove = chess.history[chess.history.length - 1] ?? null;
@@ -228,7 +236,7 @@ export const GameScreen: React.FC = () => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chess.selectedSquare, chess.turn, chess.isGameOver, myColor],
+    [chess.selectedSquare, chess.turn, chess.isGameOver, chess.pieces, myColor],
   );
 
   // Wrap into a stable callback that has the latest match context for emitting

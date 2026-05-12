@@ -142,6 +142,7 @@ export const Board: React.FC<Props> = ({
           />
         ))}
       </View>
+
     </View>
   );
 };
