@@ -14,11 +14,15 @@ export const setupSocketEvents = (io: Server): void => {
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     const userId = socket.handshake.auth.userId;
+    logger.info('Socket auth attempt', { hasToken: !!token, userId: userId ?? 'none', ip: socket.handshake.address });
     
     // If token provided, verify JWT
     if (token) {
       const payload = verifyToken(token);
-      if (!payload) return next(new Error('Invalid token'));
+      if (!payload) {
+        logger.warn('Socket auth rejected: invalid token', { userId });
+        return next(new Error('Invalid token'));
+      }
       (socket as any).user = payload;
       return next();
     }
@@ -29,7 +33,12 @@ export const setupSocketEvents = (io: Server): void => {
       return next();
     }
     
+    logger.warn('Socket auth rejected: no token or guest userId', { userId });
     return next(new Error('Authentication required'));
+  });
+
+  io.engine.on('connection_error', (err: any) => {
+    logger.error('Socket engine connection error', { code: err.code, message: err.message, context: err.context });
   });
 
   io.on('connection', async (socket: Socket) => {

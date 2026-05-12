@@ -41,18 +41,29 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const handleConnect = () => setConnected(true);
-    const handleDisconnect = () => setConnected(false);
+    const handleConnect = () => {
+      console.log('[Socket] Connected:', socket.id);
+      setConnected(true);
+    };
+    const handleDisconnect = (reason: string) => {
+      console.log('[Socket] Disconnected:', reason);
+      setConnected(false);
+    };
+    const handleConnectError = (err: Error) => {
+      console.error('[Socket] Connection error:', err.message);
+      setConnected(false);
+    };
     const handleOnline = (data: { count: number }) => setOnlineCount(data.count);
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
     socket.on(SOCKET_ON.ONLINE_COUNT, handleOnline);
 
     return () => {
-      // BUG-2 FIX: always remove the exact listeners we attached
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
       socket.off(SOCKET_ON.ONLINE_COUNT, handleOnline);
     };
   }, [socket]);
