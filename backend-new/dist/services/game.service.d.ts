@@ -32,7 +32,7 @@ export declare class GameService {
         session: GameSession;
         error?: undefined;
     }>;
-    handleGameEnd(gameId: string, session: GameSession): Promise<void>;
+    handleGameEnd(gameId: string, session: GameSession, overrideReason?: string): Promise<void>;
     resign(gameId: string, userId: string): Promise<{
         success: boolean;
         error: string;
@@ -40,6 +40,8 @@ export declare class GameService {
         success: boolean;
         error?: undefined;
     }>;
+    handleTimeout(gameId: string, flaggedColor: 'w' | 'b'): Promise<void>;
+    acceptDraw(gameId: string): Promise<void>;
     getGameHistory(userId: string, limit?: number, offset?: number): Promise<{
         id: any;
         opponent: any;

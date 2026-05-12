@@ -16,11 +16,14 @@ const setupSocketEvents = (io) => {
     io.use((socket, next) => {
         const token = socket.handshake.auth.token;
         const userId = socket.handshake.auth.userId;
+        logger.info('Socket auth attempt', { hasToken: !!token, userId: userId ?? 'none', ip: socket.handshake.address });
         // If token provided, verify JWT
         if (token) {
             const payload = (0, jwt_1.verifyToken)(token);
-            if (!payload)
+            if (!payload) {
+                logger.warn('Socket auth rejected: invalid token', { userId });
                 return next(new Error('Invalid token'));
+            }
             socket.user = payload;
             return next();
         }
@@ -29,7 +32,11 @@ const setupSocketEvents = (io) => {
             socket.user = { userId, username: `Guest_${userId.slice(6, 12)}`, email: '' };
             return next();
         }
+        logger.warn('Socket auth rejected: no token or guest userId', { userId });
         return next(new Error('Authentication required'));
+    });
+    io.engine.on('connection_error', (err) => {
+        logger.error('Socket engine connection error', { code: err.code, message: err.message, context: err.context });
     });
     io.on('connection', async (socket) => {
         const user = socket.user;
@@ -71,17 +78,22 @@ const setupSocketEvents = (io) => {
         });
         socket.on('join_game', async (data) => {
             try {
-                const session = await game_service_1.gameService.getGameSession(data.gameId);
+                const id = data.matchId || data.gameId;
+                if (!id) {
+                    socket.emit('error', { message: 'No game ID provided' });
+                    return;
+                }
+                const session = await game_service_1.gameService.getGameSession(id);
                 if (!session) {
                     socket.emit('error', { message: 'Game not found' });
                     return;
                 }
-                socket.join(data.gameId);
-                socket.gameId = data.gameId;
-                if (!gameSockets.has(data.gameId))
-                    gameSockets.set(data.gameId, new Set());
-                gameSockets.get(data.gameId).add(socket.id);
-                socket.to(data.gameId).emit('opponent_presence', { userId: user.userId, username: user.username, status: 'online' });
+                socket.join(id);
+                socket.gameId = id;
+                if (!gameSockets.has(id))
+                    gameSockets.set(id, new Set());
+                gameSockets.get(id).add(socket.id);
+                socket.to(id).emit('opponent_presence', { userId: user.userId, username: user.username, status: 'online' });
             }
             catch (e) {
                 socket.emit('error', { message: 'Failed to join game' });
@@ -102,21 +114,36 @@ const setupSocketEvents = (io) => {
                 if (!gameSockets.has(id))
                     gameSockets.set(id, new Set());
                 gameSockets.get(id).add(socket.id);
+                logger.info('Player rejoined game', { gameId: id, userId: user.userId, socketId: socket.id });
                 socket.to(id).emit('opponent_presence', { userId: user.userId, username: user.username, status: 'online' });
                 // Send state sync to reconnecting player
                 socket.emit('state_sync', { matchId: id, fen: session.fen, moves: session.moveHistory, times: { whiteMs: session.whiteTime, blackMs: session.blackTime, serverTimestamp: Date.now() }, turn: session.turn });
+                logger.info('State sync sent', { gameId: id, fen: session.fen.substring(0, 20) });
             }
             catch (e) {
+                logger.error('Rejoin error', { error: e.message });
                 socket.emit('error', { message: 'Failed to rejoin game' });
             }
         });
         socket.on('move', async (data) => {
             try {
-                const result = await game_service_1.gameService.makeMove(data.gameId, user.userId, data.from, data.to, data.promotion);
-                if (!result.success)
+                const id = data.matchId || data.gameId;
+                if (!id) {
+                    socket.emit('move_rejected', { error: 'No game ID' });
+                    return;
+                }
+                logger.info('Move received', { gameId: id, userId: user.userId, from: data.from, to: data.to });
+                const result = await game_service_1.gameService.makeMove(id, user.userId, data.from, data.to, data.promotion);
+                if (!result.success) {
+                    logger.warn('Move rejected', { gameId: id, userId: user.userId, error: result.error });
                     socket.emit('move_rejected', { error: result.error });
+                }
+                else {
+                    logger.info('Move accepted and broadcasted', { gameId: id, from: data.from, to: data.to });
+                }
             }
             catch (e) {
+                logger.error('Move error', { error: e.message });
                 socket.emit('move_rejected', { error: 'Server error' });
             }
         });
@@ -125,18 +152,86 @@ const setupSocketEvents = (io) => {
             if (gameId)
                 socket.to(gameId).emit('opponent_presence', { userId: user.userId, username: user.username, status: data.status });
         });
-        socket.on('resign', async (data) => { try {
-            await game_service_1.gameService.resign(data.gameId, user.userId);
-        }
-        catch (e) {
-            socket.emit('error', { message: 'Failed to resign' });
-        } });
+        socket.on('resign', async (data) => {
+            try {
+                const id = data.matchId || data.gameId;
+                if (!id) {
+                    socket.emit('error', { message: 'No game ID' });
+                    return;
+                }
+                logger.info('Resign received', { gameId: id, userId: user.userId, reason: data.reason });
+                if (data.reason === 'timeout' && data.flaggedColor) {
+                    await game_service_1.gameService.handleTimeout(id, data.flaggedColor);
+                }
+                else {
+                    await game_service_1.gameService.resign(id, user.userId);
+                }
+            }
+            catch (e) {
+                logger.error('Resign error', { error: e.message });
+                socket.emit('error', { message: 'Failed to resign' });
+            }
+        });
+        socket.on('offer_draw', async (data) => {
+            try {
+                const id = data.matchId || data.gameId || socket.gameId;
+                if (!id) {
+                    socket.emit('error', { message: 'No game ID for draw' });
+                    return;
+                }
+                const session = await game_service_1.gameService.getGameSession(id);
+                if (!session) {
+                    socket.emit('error', { message: 'Game not found for draw' });
+                    return;
+                }
+                if (session.status !== 'in_progress') {
+                    socket.emit('error', { message: 'Game not in progress' });
+                    return;
+                }
+                const isWhite = user.userId === session.whitePlayerId;
+                const byColor = isWhite ? 'w' : 'b';
+                logger.info('Draw offered', { gameId: id, by: user.userId, byColor });
+                socket.to(id).emit('draw_offered', { matchId: id, by: byColor });
+            }
+            catch (e) {
+                logger.error('offer_draw error', { error: e.message });
+            }
+        });
+        socket.on('accept_draw', async (data) => {
+            try {
+                const id = data.matchId || data.gameId || socket.gameId;
+                if (!id)
+                    return;
+                const session = await game_service_1.gameService.getGameSession(id);
+                if (!session || session.status !== 'in_progress')
+                    return;
+                const updatedSession = { ...session, status: 'draw' };
+                game_service_1.gameService.setSession?.(id, updatedSession);
+                // Use the gameService's handleGameEnd
+                await game_service_1.gameService.acceptDraw(id);
+            }
+            catch (e) {
+                logger.error('accept_draw error', { error: e.message });
+            }
+        });
+        socket.on('decline_draw', async (data) => {
+            try {
+                const id = data.matchId || data.gameId || socket.gameId;
+                if (!id)
+                    return;
+                logger.info('Draw declined', { gameId: id, by: user.userId });
+                socket.to(id).emit('draw_declined', { matchId: id });
+            }
+            catch (e) {
+                logger.error('decline_draw error', { error: e.message });
+            }
+        });
         socket.on('disconnect', async () => {
             logger.info('Socket disconnected', { userId: user.userId });
             await matchmaking_service_1.matchmakingService.removeFromQueue(user.userId);
             const gameId = socket.gameId;
             if (gameId) {
-                socket.to(gameId).emit('opponent_disconnected', { userId: user.userId });
+                socket.to(gameId).emit('opponent_left', { userId: user.userId });
                 gameSockets.get(gameId)?.delete(socket.id);
             }
             userSockets.delete(user.userId);

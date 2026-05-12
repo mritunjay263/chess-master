@@ -16,8 +16,8 @@ const startServer = async () => {
         const httpServer = http_1.default.createServer(app);
         const io = (0, socket_1.createSocketServer)(httpServer);
         (0, game_socket_1.initializeGameSocket)(io);
-        httpServer.listen(PORT, () => {
-            logger.info(`Server running on port ${PORT}`);
+        httpServer.listen(Number(PORT), '0.0.0.0', () => {
+            logger.info(`Server running on 0.0.0.0:${PORT}`);
         });
     }
     catch (error) {

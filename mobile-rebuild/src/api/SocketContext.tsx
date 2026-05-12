@@ -29,7 +29,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const socket = useMemo<Socket | null>(() => {
     if (!user) return null;
-    return getSocket(token, user.id);
+    const newSocket = getSocket(token, user.id);
+    console.log('[SocketContext] Socket created, connected:', newSocket.connected);
+    return newSocket;
   }, [user, token]);
 
   const [connected, setConnected] = useState<boolean>(!!socket?.connected);
@@ -42,15 +44,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const handleConnect = () => {
-      console.log('[Socket] Connected:', socket.id);
+      console.log('[SocketContext] Connected:', socket.id);
       setConnected(true);
     };
     const handleDisconnect = (reason: string) => {
-      console.log('[Socket] Disconnected:', reason);
+      console.log('[SocketContext] Disconnected:', reason);
       setConnected(false);
     };
     const handleConnectError = (err: Error) => {
-      console.error('[Socket] Connection error:', err.message);
+      console.error('[SocketContext] Connection error:', err.message);
       setConnected(false);
     };
     const handleOnline = (data: { count: number }) => setOnlineCount(data.count);
@@ -59,6 +61,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
     socket.on(SOCKET_ON.ONLINE_COUNT, handleOnline);
+
+    // Check initial connection state
+    if (socket.connected) {
+      setConnected(true);
+    }
 
     return () => {
       socket.off('connect', handleConnect);

@@ -7,11 +7,17 @@ export function useSocket() {
 
   const emit = useCallback(
     <T,>(event: string, payload?: T) => {
-      if (!socket) return false;
+      if (!socket) {
+        console.warn('[useSocket] Socket not available for event:', event);
+        return false;
+      }
+      if (!connected) {
+        console.warn('[useSocket] Socket not connected for event:', event);
+      }
       socket.emit(event, payload);
       return true;
     },
-    [socket],
+    [socket, connected],
   );
 
   return { socket, connected, onlineCount, emit };

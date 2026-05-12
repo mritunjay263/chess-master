@@ -86,11 +86,19 @@ export const GameScreen: React.FC = () => {
       turn: Color;
       times: ServerTimes;
     }) => {
+      console.log('[GameScreen] Move made received:', data.move, 'myColor:', myColor, 'turn:', data.turn);
       if (data.matchId !== matchId) return;
+      if (!data.move || !data.move.from || !data.move.to) {
+        console.warn('[GameScreen] Invalid move data received:', data.move);
+        return;
+      }
       // Only apply moves we did NOT make locally (i.e. opponent's moves).
       // The local player applied their own move optimistically before emitting.
-      const isOurMove = data.move.color === myColor;
+      // If color is missing, assume it's the opponent's move (server should add it)
+      const isOurMove = data.move.color != null && data.move.color === myColor;
+      console.log('[GameScreen] isOurMove:', isOurMove);
       if (!isOurMove) {
+        console.log('[GameScreen] Applying remote move:', data.move);
         applyRemoteRef.current(data.move);
         soundManager.play(SOUND_KEYS.MOVE_OPPONENT);
       }
@@ -110,9 +118,10 @@ export const GameScreen: React.FC = () => {
       winner?: Color;
     }) => {
       if (data.matchId !== matchId) return;
+      console.log('[GameScreen] Game over received:', data);
       const result: GameResult = {
         kind: data.winner ? (data.winner === myColor ? 'win' : 'lose') : 'draw',
-        reason: data.reason,
+        reason: data.reason || 'resignation',
         winnerColor: data.winner,
       };
       useGameStore.getState().setResult(result);
@@ -130,11 +139,17 @@ export const GameScreen: React.FC = () => {
 
     const onDrawOffered = (data: { matchId: string; by: Color }) => {
       if (data.matchId !== matchId) return;
+      if (!data.by) {
+        console.warn('[GameScreen] Invalid draw offer data:', data);
+        return;
+      }
       useGameStore.getState().setDrawOffered(data.by);
+      setToast('Opponent offers a draw');
       soundManager.play(SOUND_KEYS.NOTIFY);
       haptics.rematchPing();
     };
-    const onDrawDeclined = () => {
+    const onDrawDeclined = (data?: { matchId: string }) => {
+      if (data && data.matchId !== matchId) return;
       setToast('Draw offer declined');
       useGameStore.getState().setDrawOffered(null);
     };
@@ -147,11 +162,15 @@ export const GameScreen: React.FC = () => {
     };
 
     const onStateSync = (data: { fen: string; moves: ChessMove[]; times: ServerTimes; turn: Color }) => {
+      console.log('[GameScreen] State sync received, loading FEN:', data.fen.substring(0, 30) + '...');
       loadFenRef.current(data.fen);
       useGameStore.getState().syncTimes(data.times);
     };
 
-    const onOpponentLeft = () => setToast('Opponent disconnected');
+    const onOpponentLeft = () => {
+      console.log('[GameScreen] Opponent left the game');
+      setToast('Opponent disconnected');
+    };
 
     socket.on(SOCKET_ON.MOVE_MADE, onMoveMade);
     socket.on(SOCKET_ON.GAME_OVER, onGameOver);
@@ -275,7 +294,9 @@ export const GameScreen: React.FC = () => {
   // ----- Action buttons -----
   const handleResign = () => {
     if (resignConfirm) {
-      emit(SOCKET_EMIT.RESIGN, { matchId });
+      console.log('[GameScreen] Emitting resign for match:', matchId);
+      const success = emit(SOCKET_EMIT.RESIGN, { matchId });
+      console.log('[GameScreen] Resign emit success:', success);
       setResignConfirm(false);
     } else {
       setResignConfirm(true);
@@ -283,9 +304,13 @@ export const GameScreen: React.FC = () => {
     }
   };
   const handleOfferDraw = () => {
+    console.log('[GameScreen] Offering draw for match:', matchId);
     Alert.alert('Offer a draw?', 'Your opponent will be notified.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Offer', onPress: () => emit(SOCKET_EMIT.OFFER_DRAW, { matchId }) },
+      { text: 'Offer', onPress: () => {
+        const success = emit(SOCKET_EMIT.OFFER_DRAW, { matchId });
+        console.log('[GameScreen] Draw offer emit success:', success);
+      }},
     ]);
   };
   const handleAcceptDraw = () => {
