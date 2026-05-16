@@ -1,9 +1,26 @@
-// src/api/config.ts — runtime endpoint configuration
-// For same-network (LAN) testing, use your machine's LAN IP.
-// For remote (non-LAN) testing, use ngrok: npx ngrok http 3000
-// then paste the https URL below.
-const HOST = '192.168.1.7'; // your Mac's current LAN IP
+import Constants from 'expo-constants';
+
 const PORT = 3000;
+
+const getHost = (): string => {
+  const debuggerHost =
+    (Constants as any)?.manifest?.debuggerHost ||
+    (Constants as any)?.expoConfig?.extra?.debuggerHost ||
+    (Constants as any)?.manifest2?.debuggerHost;
+
+  if (typeof debuggerHost === 'string' && debuggerHost.includes(':')) {
+    return debuggerHost.split(':')[0];
+  }
+
+  const extraHost = (Constants as any)?.expoConfig?.extra?.backendHost;
+  if (typeof extraHost === 'string' && extraHost.trim().length > 0) {
+    return extraHost.trim();
+  }
+
+  return 'localhost';
+};
+
+const HOST = getHost();
 
 export const API_CONFIG = {
   BASE_URL: `http://${HOST}:${PORT}`,

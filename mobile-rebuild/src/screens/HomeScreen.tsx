@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '@components/Button';
 import { useUserStore } from '@store/userStore';
 import { useSocket } from '@hooks/useSocket';
+import { useNetwork } from '@hooks/useNetwork';
 import { COLORS, RADIUS, SPACING } from '@/constants/theme';
 import { Storage, STORAGE_KEYS } from '@utils/storage';
 import type { RootStackParamList } from '@/navigation/types';
@@ -23,6 +24,7 @@ export const HomeScreen: React.FC = () => {
   const nav = useNavigation<Nav>();
   const user = useUserStore((s) => s.user);
   const { onlineCount, connected } = useSocket();
+  const { isOnline } = useNetwork();
   const recent = Storage.getObject<RecentGame[]>(STORAGE_KEYS.RECENT_GAMES) ?? [];
 
   // Stats card is intentionally lightweight; real stats fetched via React Query
@@ -34,8 +36,8 @@ export const HomeScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.greeting}>Hello, {user?.username ?? 'Player'}</Text>
         <View style={styles.onlineBadge}>
-          <View style={[styles.dot, { backgroundColor: connected ? COLORS.primary : COLORS.textMuted }]} />
-          <Text style={styles.onlineText}>{onlineCount} online</Text>
+          <View style={[styles.dot, { backgroundColor: isOnline ? (connected ? COLORS.primary : COLORS.accent) : COLORS.danger }]} />
+          <Text style={styles.onlineText}>{isOnline ? (connected ? `${onlineCount} online` : 'connecting...') : 'Offline'}</Text>
         </View>
       </View>
 
@@ -46,10 +48,24 @@ export const HomeScreen: React.FC = () => {
         <Stat label="Draws" value={String(stats.draws)} />
       </View>
 
+      {isOnline ? (
+        <Button
+          label="Quick Play"
+          onPress={() => nav.navigate('Matchmaking')}
+          style={{ marginTop: SPACING.lg }}
+        />
+      ) : (
+        <View style={styles.offlineCard}>
+          <Text style={styles.offlineTitle}>You're offline</Text>
+          <Text style={styles.offlineText}>Play vs Computer to keep playing!</Text>
+        </View>
+      )}
+
       <Button
-        label="Quick Play"
-        onPress={() => nav.navigate('Matchmaking')}
-        style={{ marginTop: SPACING.lg }}
+        label="Play vs Computer"
+        onPress={() => nav.navigate('SinglePlayer')}
+        variant={isOnline ? 'secondary' : 'primary'}
+        style={{ marginTop: SPACING.sm }}
       />
 
       <Text style={styles.sectionTitle}>Recent games</Text>
@@ -89,6 +105,17 @@ const styles = StyleSheet.create({
   onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   onlineText: { color: COLORS.textSecondary, fontSize: 12 },
+  offlineCard: {
+    backgroundColor: COLORS.surface,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  offlineTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
+  offlineText: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
   statsCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,

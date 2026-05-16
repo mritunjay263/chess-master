@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SplashScreen } from '@screens/SplashScreen';
 import { AuthScreen } from '@screens/AuthScreen';
 import { MatchmakingScreen } from '@screens/MatchmakingScreen';
+import { SinglePlayerScreen } from '@screens/SinglePlayerScreen';
 import { GameScreen } from '@screens/GameScreen';
 import { PostGameScreen } from '@screens/PostGameScreen';
 import { ReplayScreen } from '@screens/ReplayScreen';
@@ -42,6 +43,7 @@ export const RootNavigator: React.FC = () => (
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="Matchmaking" component={MatchmakingScreen} options={{ title: 'Finding match' }} />
+      <Stack.Screen name="SinglePlayer" component={SinglePlayerScreen} options={{ title: 'vs Computer' }} />
       <Stack.Screen name="Game" component={GameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PostGame" component={PostGameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Replay" component={ReplayScreen} options={{ title: 'Replay' }} />

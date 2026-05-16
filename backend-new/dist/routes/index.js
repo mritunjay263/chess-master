@@ -7,10 +7,14 @@ const express_1 = require("express");
 const auth_routes_1 = __importDefault(require("./auth.routes"));
 const game_routes_1 = __importDefault(require("./game.routes"));
 const leaderboard_routes_1 = __importDefault(require("./leaderboard.routes"));
+const ai_routes_1 = __importDefault(require("./ai.routes"));
+const user_routes_1 = __importDefault(require("./user.routes"));
 const router = (0, express_1.Router)();
 router.use('/auth', auth_routes_1.default);
 router.use('/game', game_routes_1.default);
 router.use('/leaderboard', leaderboard_routes_1.default);
+router.use('/ai', ai_routes_1.default);
+router.use('/user', user_routes_1.default);
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 exports.default = router;
 //# sourceMappingURL=index.js.map

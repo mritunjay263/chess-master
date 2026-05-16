@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   Matchmaking: { timeControlKey?: import('@/types/index').TimeControlKey } | undefined;
+  SinglePlayer: undefined;
   Game: {
     matchId: string;
     white: PlayerInfo;

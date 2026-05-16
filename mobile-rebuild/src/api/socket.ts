@@ -17,7 +17,7 @@ export function getSocket(authToken?: string | null, userId?: string | null): So
     return socket;
   }
   socket = io(API_CONFIG.SOCKET_URL, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     autoConnect: true,
     reconnection: true,
     reconnectionAttempts: Infinity,

@@ -52,3 +52,11 @@ export const LeaderboardApi = {
     params: { limit },
   }),
 };
+
+export const AIApi = {
+  getMove: (fen: string, difficulty: number = 5) =>
+    api.post<{ move: { from: string; to: string; promotion?: string }; evaluation: number }>('/ai/move', {
+      fen,
+      difficulty,
+    }),
+};

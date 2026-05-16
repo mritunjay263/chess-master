@@ -18,6 +18,9 @@
       },
       "package": "com.chessmate.app"
     },
+    "extra": {
+      "backendHost": "192.168.1.7"
+    },
     "plugins": [
       "expo-audio"
     ]

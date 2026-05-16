@@ -34,6 +34,7 @@ import { SOCKET_EMIT, SOCKET_ON } from '@/constants/socketEvents';
 import { SOUND_KEYS } from '@/constants/sounds';
 import { COLORS, SPACING } from '@/constants/theme';
 import { soundManager } from '@utils/soundManager';
+import { AIApi } from '@api/client';
 
 import type { ChessMove, Color, GameResult, ServerTimes, Square } from '@/types/index';
 import type { RootStackParamList } from '@/navigation/types';
@@ -50,10 +51,16 @@ export const GameScreen: React.FC = () => {
   const haptics = useHaptics();
   const { socket, emit } = useSocket();
 
+  // Detect single player vs AI mode
+  const isAI = matchId.startsWith('ai-');
+  const aiDifficulty = isAI ? parseInt(matchId.split('-')[2] || '5', 10) : 5;
+  const aiColor = white.id === 'ai' ? 'w' : 'b';
+
   const game = useGameStore();
   const chess = useChessGame({ matchId });
   const [toast, setToast] = useState<string | null>(null);
   const [resignConfirm, setResignConfirm] = useState(false);
+  const [aiThinking, setAiThinking] = useState(false);
 
   // Stable refs for chess callbacks used inside the socket effect
   // (avoids putting the entire `chess` object in the effect deps, which would
@@ -74,6 +81,50 @@ export const GameScreen: React.FC = () => {
     });
     soundManager.play(SOUND_KEYS.GAME_START);
   }, [matchId, white, black, myColor, timeControl]);
+
+  // ----- AI move logic for single player -----
+  const chessRef = useRef(chess);
+  chessRef.current = chess;
+
+  useEffect(() => {
+    if (!isAI || chess.isGameOver) return;
+    if (chess.turn === aiColor && !aiThinking) {
+      // AI's turn - get move from server or use local fallback
+      const makeAIMove = async () => {
+        setAiThinking(true);
+        try {
+          const fen = chessRef.current.fen;
+          const response = await AIApi.getMove(fen, aiDifficulty);
+          const aiMove = response.data.move;
+          if (aiMove) {
+            const move = chessRef.current.tryMove(aiMove.from as Square, aiMove.to as Square, aiMove.promotion as 'q' | 'r' | 'b' | 'n');
+            if (move) {
+              // Apply move locally (no socket emit for AI)
+              useGameStore.getState().applyServerMove({
+                move,
+                fen: chessRef.current.fen,
+                turn: aiColor,
+                times: { whiteMs: game.whiteTimeMs, blackMs: game.blackTimeMs, serverTimestamp: Date.now() },
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('[GameScreen] AI move failed, using local fallback:', err);
+          // Fallback: make random legal move
+          const moves = chessRef.current.legalMoves;
+          if (moves.length > 0) {
+            const randomMove = moves[Math.floor(Math.random() * moves.length)];
+            chessRef.current.tryMove(randomMove.from, randomMove.to);
+          }
+        } finally {
+          setAiThinking(false);
+        }
+      };
+      // Small delay for realistic feel
+      setTimeout(makeAIMove, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAI, chess.turn, chess.isGameOver, aiColor, aiDifficulty]);
 
   // ----- Socket listeners (BUG-2: scoped, cleaned up on unmount) -----
   useEffect(() => {

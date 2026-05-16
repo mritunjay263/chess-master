@@ -35,6 +35,7 @@ export interface UseChessGameResult {
   history: ChessMove[];
   selectedSquare: Square | null;
   legalTargets: Square[];
+  legalMoves: ChessMove[];
   pendingPromotion: { from: Square; to: Square } | null;
   isCheck: boolean;
   isCheckmate: boolean;
@@ -159,6 +160,20 @@ export function useChessGame({
   const captured = useMemo(() => capturedPieces(chessRef.current), [version]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const material = useMemo(() => materialAdvantage(chessRef.current), [version]);
+  // All legal moves (for AI)
+  const legalMoves = useMemo(() => {
+    const moves = chessRef.current.moves({ verbose: true });
+    return moves.map((m) => ({
+      from: m.from as Square,
+      to: m.to as Square,
+      promotion: m.promotion as ChessMove['promotion'],
+      san: m.san,
+      flags: m.flags,
+      captured: m.captured,
+      piece: m.piece,
+      color: m.color,
+    }));
+  }, [version]);
 
   return {
     chess: chessRef.current,
@@ -168,6 +183,7 @@ export function useChessGame({
     history,
     selectedSquare,
     legalTargets,
+    legalMoves,
     pendingPromotion,
     isCheck: gameOver.isCheck,
     isCheckmate: gameOver.isCheckmate,
