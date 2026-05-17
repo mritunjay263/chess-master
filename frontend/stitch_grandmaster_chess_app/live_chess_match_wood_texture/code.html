@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chess-board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+        }
+        .silver-rim {
+            box-shadow: inset 0 0 0 1px rgba(185, 199, 228, 0.15);
+        }
+        .move-history-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .move-history-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .move-history-scroll::-webkit-scrollbar-thumb {
+            background: #39475f;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-fixed": "#002117",
+                      "outline-variant": "#44474d",
+                      "on-primary": "#233148",
+                      "surface-container-lowest": "#000d27",
+                      "primary": "#b9c7e4",
+                      "on-primary-fixed-variant": "#39475f",
+                      "tertiary-fixed-dim": "#c1c7cf",
+                      "surface-container-high": "#192a48",
+                      "outline": "#8f9097",
+                      "on-secondary-fixed-variant": "#0b513d",
+                      "on-tertiary-fixed-variant": "#41474e",
+                      "secondary": "#95d3ba",
+                      "on-tertiary": "#2b3137",
+                      "tertiary-fixed": "#dde3eb",
+                      "primary-fixed": "#d6e3ff",
+                      "tertiary-container": "#141a1f",
+                      "on-primary-container": "#74829d",
+                      "on-secondary-container": "#83c2a9",
+                      "surface": "#011230",
+                      "primary-container": "#0a192f",
+                      "background": "#011230",
+                      "surface-dim": "#011230",
+                      "surface-container-low": "#091b39",
+                      "inverse-primary": "#515f78",
+                      "tertiary": "#c1c7cf",
+                      "on-tertiary-container": "#7c838a",
+                      "primary-fixed-dim": "#b9c7e4",
+                      "on-surface": "#d8e2ff",
+                      "on-background": "#d8e2ff",
+                      "secondary-fixed": "#b0f0d6",
+                      "secondary-fixed-dim": "#95d3ba",
+                      "surface-variant": "#253453",
+                      "on-secondary": "#003829",
+                      "on-error-container": "#ffdad6",
+                      "surface-tint": "#b9c7e4",
+                      "surface-container-highest": "#253453",
+                      "on-primary-fixed": "#0d1c32",
+                      "on-surface-variant": "#c5c6cd",
+                      "error": "#ffb4ab",
+                      "inverse-surface": "#d8e2ff",
+                      "secondary-container": "#0b513d",
+                      "on-error": "#690005",
+                      "on-tertiary-fixed": "#161c22",
+                      "surface-container": "#0e1f3d",
+                      "inverse-on-surface": "#20304f",
+                      "error-container": "#93000a",
+                      "surface-bright": "#293958"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "board-margin": "32px",
+                      "unit": "8px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["EB Garamond"],
+                      "label-sm": ["Hanken Grotesk"],
+                      "headline-lg": ["EB Garamond"],
+                      "label-md": ["Hanken Grotesk"],
+                      "headline-xl": ["EB Garamond"],
+                      "body-md": ["Hanken Grotesk"],
+                      "body-lg": ["Hanken Grotesk"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "500"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-md text-body-md overflow-hidden">
+<header class="fixed top-0 w-full z-50 bg-surface text-primary border-b border-outline-variant/20 shadow-[0_4px_20px_rgba(2,12,27,0.8)] flex justify-between items-center px-container-padding h-16">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface cursor-pointer active:scale-95 transition-transform" data-icon="menu">menu</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg tracking-tighter text-on-surface uppercase">GRANDMASTER</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex gap-8 mr-8">
+<span class="font-label-md text-label-md text-primary cursor-pointer hover:text-primary transition-colors duration-300">Play</span>
+<span class="font-label-md text-label-md text-on-surface-variant cursor-pointer hover:text-primary transition-colors duration-300">Puzzles</span>
+<span class="font-label-md text-label-md text-on-surface-variant cursor-pointer hover:text-primary transition-colors duration-300">Learn</span>
+</div>
+<img alt="Profile" class="w-10 h-10 rounded-full border border-primary/20" data-alt="A professional studio headshot of a refined individual with a thoughtful expression, set against a dark, moody background. The lighting is dramatic and low-key, highlighting sharp features with a silvery rim-light effect. This profile avatar embodies the elite, intellectual atmosphere of a high-stakes chess club, using a palette of deep navy and soft silver." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3EIB2Qne636ufWqc63RAwDQJKYaRtw1SKHLhAdwyjY-mNi1PveXmbDBhjzuR3b8ojbxMhCmPP4Pevm1bzHckgw7ihn4TxG0YdmyDAUY8CzxBDNUb2T5o2Nj8H9EHvG53OOFzQxy9zOm1d6p14McWslIQa_QmtrYWFTGrlI5-GIYBiDiGqRuLvDPCNcXjysSKrlSkhgc0xxjLd5vBJ8fmtsonrnloKeTbmUeLlJmRmpzdJ3MUrM-rxMXa0xdz41y-8JFLBbEJIZ7aY"/>
+</div>
+</header>
+<main class="flex-grow pt-24 pb-24 md:pb-8 px-4 md:px-container-padding max-w-[1400px] mx-auto w-full flex flex-col md:grid md:grid-cols-12 gap-gutter h-full">
+<div class="md:col-span-8 flex flex-col gap-4">
+<div class="flex justify-between items-end silver-rim bg-surface-container-low p-4 rounded-xl shadow-lg border-t border-primary/10">
+<div class="flex items-center gap-4">
+<img alt="Opponent" class="w-12 h-12 rounded-lg border border-primary/10" data-alt="A detailed portrait of a focused grandmaster opponent, showing intense concentration. The image has a cinematic quality with deep shadows and emerald green highlights, reflecting a midnight luxury aesthetic. Soft ambient lighting creates a three-dimensional effect on the facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1LyOWwGu5yB3VTkqhJH1kGzcqyV-NVCfAv8Y-4a5x-88yW1aGSsfP_5LK88zwUAap7bPkqBK3Sp8uA1_hFtO0tYZbQlzg97NKPfT2Ebo43KpkVmPbO0Mu9K1TbRiutoLGcGqOIFkpRNHi33sAvcQ4iZEs6xqJTlK_QezSr75z37QOkt1YMLdq-1c1dJEYxbgfzIgd7Zxkdf1BjI7M16vOyLYhSBGsSpGl-5NZBnFG22oUiEuwfjb1wjnFNDD1a_Qv9Ng8a8hKgPUr"/>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">Magnus_Alpha</span>
+<span class="px-1.5 py-0.5 bg-on-primary-fixed-variant text-on-surface rounded text-[10px] font-bold">2840</span>
+</div>
+<span class="text-on-surface-variant text-label-sm font-label-sm">Norway</span>
+</div>
+</div>
+<div class="bg-surface-container-highest px-6 py-2 rounded-lg border border-outline-variant/30 flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-widest">Black</span>
+<span class="font-headline-lg text-headline-lg tabular-nums text-on-surface">04:12</span>
+</div>
+</div>
+<div class="aspect-square w-full max-w-[650px] mx-auto chess-board-grid silver-rim border-4 border-surface-container-highest relative"><img alt="Wooden Chess Board" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCck7YTEN6mcR9eFvcvDZFfE0VtIUUqmEIeCjcMvPDM9l0w7MVx_TvsI_iCYQHZaHyEc9yef7GApbbdfM-61lmSZsggaCGKfGhySutjAtPfpvd4_Y1p5C6MFwvyp3JQyz70VGeJxzdfEWEqcmMs6mJ-GYH2YJdgWZmMhqAcWDCP-9Tc-XUnHzTOW88yjx3z57FzQ6SHXv6YVOD43K3nP_ah_vuIQDnV_ekDaWXKjfTwsA4D16wKDYP8zwwBoZbtHUvPbZlL2-b965qe"/><div class="absolute inset-0 grid grid-cols-8 grid-rows-8"><div class="flex items-center justify-center relative"><span class="text-on-surface/80 text-4xl select-none">♜</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♞</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♝</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♛</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♚</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♝</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♞</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♜</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div class="flex items-center justify-center"><span class="text-on-surface/80 text-4xl select-none">♟</span></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center border-2 border-secondary/50 shadow-[0_0_15px_rgba(149,211,186,0.3)]"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♙</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♖</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♘</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♗</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♕</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♔</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♗</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♘</span></div><div class="flex items-center justify-center"><span class="text-on-surface text-4xl select-none">♖</span></div></div></div>
+<div class="flex justify-between items-start silver-rim bg-surface-container-low p-4 rounded-xl shadow-lg border-t border-primary/10">
+<div class="flex items-center gap-4">
+<img alt="Me" class="w-12 h-12 rounded-lg border border-secondary/30" data-alt="A portrait of the user as a sharp chess player, looking intently ahead. The lighting is dominated by midnight navy and cool emerald, with a subtle silver rim light creating depth. The style is sophisticated and minimalist, evoking the feeling of a professional match in a private members' club." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqwmIyHYjuo3LRs6zTloxbPcNf13LKgxyC9h8mpZhpWtGX9Q5eqjVg1trimFuB4nsb5RYtLxp7iO7SCKx0X5fGsZC1ew_GCGtfvuc5yk43m8J82v6Sgi8BDDU4W-DnQfzrvEL-4iCKa7yknUBciymMco5OuRVo3WN1apRB7hCFAnmikcEyAgQu0cID_aQBRmQyjCdPkRnn2PRz-l4umJ_NZjaJ-pyjlzOMMBdJ_qEa-NABUfjpGR8gVlvDVrb9WmwcjM_agERZq6WX"/>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">Grandmaster_V</span>
+<span class="px-1.5 py-0.5 bg-secondary-container text-on-secondary-container rounded text-[10px] font-bold">2815</span>
+</div>
+<span class="text-on-surface-variant text-label-sm font-label-sm">United Kingdom</span>
+</div>
+</div>
+<div class="bg-secondary-container/20 px-6 py-2 rounded-lg border border-secondary/30 flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-secondary uppercase tracking-widest">White</span>
+<span class="font-headline-lg text-headline-lg tabular-nums text-secondary">08:45</span>
+</div>
+</div>
+</div>
+<aside class="md:col-span-4 flex flex-col gap-gutter h-full">
+<div class="bg-surface-container-low rounded-xl silver-rim overflow-hidden flex flex-col h-[500px] shadow-2xl">
+<div class="p-4 bg-surface-container border-b border-outline-variant/30 flex justify-between items-center">
+<h3 class="font-label-md text-label-md text-primary uppercase tracking-widest">Move History</h3>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="history">history</span>
+</div>
+<div class="flex-grow overflow-y-auto move-history-scroll">
+<table class="w-full text-left font-label-sm text-label-sm border-separate border-spacing-0">
+<thead class="sticky top-0 bg-surface-container-low z-10">
+<tr class="text-outline border-b border-outline-variant/20">
+<th class="p-3 font-medium border-b border-outline-variant/10">#</th>
+<th class="p-3 font-medium border-b border-outline-variant/10">White</th>
+<th class="p-3 font-medium border-b border-outline-variant/10">Black</th>
+</tr>
+</thead>
+<tbody class="text-on-surface">
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="p-3 text-outline">1</td>
+<td class="p-3">e4</td>
+<td class="p-3">e5</td>
+</tr>
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="p-3 text-outline">2</td>
+<td class="p-3">Nf3</td>
+<td class="p-3">Nc6</td>
+</tr>
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="p-3 text-outline">3</td>
+<td class="p-3">Bb5</td>
+<td class="p-3">a6</td>
+</tr>
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="p-3 text-outline">4</td>
+<td class="p-3">Ba4</td>
+<td class="p-3">Nf6</td>
+</tr>
+<tr class="hover:bg-surface-variant/20 transition-colors bg-secondary/10 border-l-2 border-secondary">
+<td class="p-3 text-outline">5</td>
+<td class="p-3 font-bold">O-O</td>
+<td class="p-3 text-on-surface-variant">...</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-outline-variant/30 flex gap-2">
+<button class="flex-grow py-3 bg-secondary text-on-secondary font-label-md text-label-md rounded shadow-lg active:scale-95 transition-all">Draw</button>
+<button class="flex-grow py-3 border border-error text-error font-label-md text-label-md rounded hover:bg-error/10 active:scale-95 transition-all">Resign</button>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl silver-rim p-4 hidden md:flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<span class="text-label-sm font-label-sm text-outline">Game Status</span>
+<span class="flex items-center gap-2 text-secondary text-label-sm font-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                        LIVE
+                    </span>
+</div>
+<div class="flex gap-4">
+<div class="flex-1 text-center">
+<div class="text-on-surface-variant text-label-sm mb-1">Accuracy</div>
+<div class="text-headline-lg font-headline-lg text-secondary">94%</div>
+</div>
+<div class="w-px bg-outline-variant/30"></div>
+<div class="flex-1 text-center">
+<div class="text-on-surface-variant text-label-sm mb-1">Advantage</div>
+<div class="text-headline-lg font-headline-lg text-primary">+0.4</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-full bg-surface-container-low border-t border-outline-variant/15 shadow-[0_-4px_24px_rgba(2,12,27,0.9)] flex justify-around items-center h-20 px-4 pb-2">
+<div class="flex flex-col items-center justify-center text-secondary bg-secondary-container/20 rounded-full px-4 py-1 active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="font-label-sm text-label-sm">Play</span>
+</div>
+<div class="flex flex-col items-center justify-center text-outline px-4 py-1 active:scale-90 duration-200 cursor-pointer hover:bg-surface-variant/30 transition-all">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-label-sm text-label-sm">Puzzles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-outline px-4 py-1 active:scale-90 duration-200 cursor-pointer hover:bg-surface-variant/30 transition-all">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+<span class="font-label-sm text-label-sm">Learn</span>
+</div>
+<div class="flex flex-col items-center justify-center text-outline px-4 py-1 active:scale-90 duration-200 cursor-pointer hover:bg-surface-variant/30 transition-all">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-sm text-label-sm">Stats</span>
+</div>
+</nav>
+</body></html>

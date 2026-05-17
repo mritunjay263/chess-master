@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .silver-rim {
+            box-shadow: inset 0 1px 0 0 rgba(143, 144, 151, 0.15);
+            border: 1px solid rgba(143, 144, 151, 0.1);
+        }
+        .midnight-gradient {
+            background: linear-gradient(180deg, rgba(1, 18, 48, 0) 0%, rgba(1, 18, 48, 1) 100%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#002117",
+                        "outline-variant": "#44474d",
+                        "on-primary": "#233148",
+                        "surface-container-lowest": "#000d27",
+                        "primary": "#b9c7e4",
+                        "on-primary-fixed-variant": "#39475f",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "surface-container-high": "#192a48",
+                        "outline": "#8f9097",
+                        "on-secondary-fixed-variant": "#0b513d",
+                        "on-tertiary-fixed-variant": "#41474e",
+                        "secondary": "#95d3ba",
+                        "on-tertiary": "#2b3137",
+                        "tertiary-fixed": "#dde3eb",
+                        "primary-fixed": "#d6e3ff",
+                        "tertiary-container": "#141a1f",
+                        "on-primary-container": "#74829d",
+                        "on-secondary-container": "#83c2a9",
+                        "surface": "#011230",
+                        "primary-container": "#0a192f",
+                        "background": "#011230",
+                        "surface-dim": "#011230",
+                        "surface-container-low": "#091b39",
+                        "inverse-primary": "#515f78",
+                        "tertiary": "#c1c7cf",
+                        "on-tertiary-container": "#7c838a",
+                        "primary-fixed-dim": "#b9c7e4",
+                        "on-surface": "#d8e2ff",
+                        "on-background": "#d8e2ff",
+                        "secondary-fixed": "#b0f0d6",
+                        "secondary-fixed-dim": "#95d3ba",
+                        "surface-variant": "#253453",
+                        "on-secondary": "#003829",
+                        "on-error-container": "#ffdad6",
+                        "surface-tint": "#b9c7e4",
+                        "surface-container-highest": "#253453",
+                        "on-primary-fixed": "#0d1c32",
+                        "on-surface-variant": "#c5c6cd",
+                        "error": "#ffb4ab",
+                        "inverse-surface": "#d8e2ff",
+                        "secondary-container": "#0b513d",
+                        "on-error": "#690005",
+                        "on-tertiary-fixed": "#161c22",
+                        "surface-container": "#0e1f3d",
+                        "inverse-on-surface": "#20304f",
+                        "error-container": "#93000a",
+                        "surface-bright": "#293958"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "board-margin": "32px",
+                        "unit": "8px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["EB Garamond"],
+                        "label-md": ["Hanken Grotesk"],
+                        "headline-xl": ["EB Garamond"],
+                        "body-md": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- Top App Bar (Branding only for onboarding) -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md flex justify-between items-center px-container-padding h-16 border-b border-outline-variant/10">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg tracking-tighter text-on-surface uppercase">GRANDMASTER</h1>
+<button class="text-outline hover:text-primary transition-colors duration-300 active:scale-95">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="flex-grow pt-16 flex flex-col items-center">
+<!-- Hero Section -->
+<section class="relative w-full h-[442px] md:h-[530px] flex flex-col justify-end items-center overflow-hidden">
+<img alt="Knight Chess Piece" class="absolute inset-0 w-full h-full object-cover" data-alt="A macro photograph of a masterfully carved ebony Knight chess piece standing on a dark, polished board. The lighting is dramatic and moody, with a cold silver rim light defining its sharp silhouette and intricate mane details. Deep navy shadows dominate the background, punctuated by a soft emerald green atmospheric glow that creates a sense of high-stakes competition. The overall aesthetic is minimalist and elite, evoking a hushed, midnight royal atmosphere in a private members' club." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDALWF7oA0BkVrp_Lt2TpZSvVJhLbgyqNfIOTyGN3I1cm9HiH9HyO1lYktJIpyAb0rgNwQnTwtKFrVKj_SmZNAcp2eJgb-oHkmDwgcsOW2D171830T7L5xbJGo4SgIdZT0ORNOb4pYZJuvlXPA_gQvHAogxTf7bKJGoTwwdG5zmPKWchV0yXHeajymlNR2j7RqWswyTlMIbB7oEVeg7nxVRmRzL7hCejWed0XaFgB69uxSWV9rCbQgVIDgvUhZ3MiVL3ZFZEK4cj5X5"/>
+<div class="absolute inset-0 midnight-gradient"></div>
+<div class="relative z-10 text-center px-container-padding pb-8 max-w-2xl">
+<h2 class="font-headline-xl text-headline-xl text-on-surface mb-2">Master Your Moves</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant/80">Experience the elite standard of strategic play.</p>
+</div>
+</section>
+<!-- Benefits Bento Grid -->
+<section class="w-full max-w-5xl px-container-padding py-board-margin grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="md:col-span-2 silver-rim bg-surface-container-low rounded-xl p-6 flex flex-col justify-between">
+<div>
+<div class="text-secondary mb-4">
+<span class="material-symbols-outlined" style="font-size: 32px;">trending_up</span>
+</div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Precision ELO Tracking</h3>
+<p class="text-on-surface-variant font-body-md">Analyze your progression with grandmaster-level metrics. Registered members gain access to heatmaps, opening performance analytics, and global ranking tiers.</p>
+</div>
+</div>
+<div class="silver-rim bg-surface-container-low rounded-xl p-6 flex flex-col">
+<div class="text-secondary mb-4">
+<span class="material-symbols-outlined" style="font-size: 32px;">workspace_premium</span>
+</div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Elite Tournaments</h3>
+<p class="text-on-surface-variant font-body-md">Join exclusive midnight brackets and compete for seasonal accolades in our digital hall of fame.</p>
+</div>
+<div class="silver-rim bg-surface-container-low rounded-xl p-6 flex flex-col md:col-span-1">
+<div class="text-secondary mb-4">
+<span class="material-symbols-outlined" style="font-size: 32px;">school</span>
+</div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Engine Insights</h3>
+<p class="text-on-surface-variant font-body-md">Unlock deep stockfish analysis for every match you play.</p>
+</div>
+<div class="md:col-span-2 silver-rim bg-surface-container-high rounded-xl p-6 flex items-center gap-6">
+<div class="hidden md:block w-24 h-24 flex-shrink-0 bg-primary-container/30 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-size: 48px;">lock_open</span>
+</div>
+<div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-1">Guest Session</h3>
+<p class="text-on-surface-variant font-body-md">Try the board. Guest sessions are limited to casual play and do not save match history or ELO progress.</p>
+</div>
+</div>
+</section>
+<!-- Action Section -->
+<section class="w-full max-w-md px-container-padding pb-board-margin space-y-4">
+<button class="w-full bg-secondary hover:bg-secondary-fixed transition-all duration-300 text-on-secondary-fixed py-4 rounded-lg font-label-md text-label-md uppercase tracking-widest shadow-[0_4px_24px_rgba(149,211,186,0.2)] active:scale-[0.98]">
+                Start Guest Session
+            </button>
+<div class="flex items-center gap-4 py-2">
+<div class="h-px flex-grow bg-outline-variant/30"></div>
+<span class="text-outline font-label-sm uppercase">Or Join the Club</span>
+<div class="h-px flex-grow bg-outline-variant/30"></div>
+</div>
+<button class="w-full border border-outline-variant hover:border-primary hover:text-primary transition-all duration-300 text-on-surface-variant py-4 rounded-lg font-label-md text-label-md uppercase tracking-widest active:scale-[0.98]">
+                Create Membership Account
+            </button>
+<p class="text-center text-outline-variant font-label-sm mt-8">
+                Already a member? <a class="text-primary hover:underline transition-all" href="#">Sign In</a>
+</p>
+</section>
+</main>
+<!-- Footer shadow element for depth -->
+<div class="h-8 bg-gradient-to-t from-surface-container-lowest to-transparent w-full"></div>
+</body></html>

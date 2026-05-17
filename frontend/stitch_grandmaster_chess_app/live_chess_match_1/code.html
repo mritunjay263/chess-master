@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Grandmaster - Midnight Royal Chess</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400..700&amp;family=Hanken+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-tint": "#b9c7e4",
+                      "on-surface-variant": "#c5c6cd",
+                      "on-background": "#d8e2ff",
+                      "tertiary": "#c1c7cf",
+                      "on-secondary": "#003829",
+                      "on-primary": "#233148",
+                      "surface-dim": "#011230",
+                      "outline": "#8f9097",
+                      "surface": "#011230",
+                      "primary-fixed": "#d6e3ff",
+                      "tertiary-fixed": "#dde3eb",
+                      "surface-bright": "#293958",
+                      "on-error": "#690005",
+                      "inverse-surface": "#d8e2ff",
+                      "surface-container": "#0e1f3d",
+                      "background": "#011230",
+                      "surface-container-high": "#192a48",
+                      "outline-variant": "#44474d",
+                      "tertiary-fixed-dim": "#c1c7cf",
+                      "on-primary-fixed": "#0d1c32",
+                      "primary-fixed-dim": "#b9c7e4",
+                      "secondary": "#95d3ba",
+                      "secondary-fixed": "#b0f0d6",
+                      "secondary-container": "#0b513d",
+                      "on-secondary-fixed-variant": "#0b513d",
+                      "on-tertiary-fixed-variant": "#41474e",
+                      "surface-container-low": "#091b39",
+                      "on-primary-fixed-variant": "#39475f",
+                      "inverse-on-surface": "#20304f",
+                      "tertiary-container": "#141a1f",
+                      "primary": "#b9c7e4",
+                      "on-tertiary-fixed": "#161c22",
+                      "error": "#ffb4ab",
+                      "on-primary-container": "#74829d",
+                      "on-secondary-fixed": "#002117",
+                      "surface-container-highest": "#253453",
+                      "error-container": "#93000a",
+                      "primary-container": "#0a192f",
+                      "on-tertiary-container": "#7c838a",
+                      "surface-variant": "#253453",
+                      "on-error-container": "#ffdad6",
+                      "surface-container-lowest": "#000d27",
+                      "on-secondary-container": "#83c2a9",
+                      "on-tertiary": "#2b3137",
+                      "inverse-primary": "#515f78",
+                      "secondary-fixed-dim": "#95d3ba",
+                      "on-surface": "#d8e2ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "board-margin": "32px",
+                      "gutter": "16px",
+                      "unit": "8px"
+              },
+              "fontFamily": {
+                      "label-md": ["Hanken Grotesk"],
+                      "label-sm": ["Hanken Grotesk"],
+                      "body-lg": ["Hanken Grotesk"],
+                      "headline-lg-mobile": ["EB Garamond"],
+                      "headline-lg": ["EB Garamond"],
+                      "body-md": ["Hanken Grotesk"],
+                      "headline-xl": ["EB Garamond"]
+              },
+              "fontSize": {
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "500"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #011230;
+            color: #d8e2ff;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chess-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 12.5%);
+            grid-template-rows: repeat(8, 12.5%);
+        }
+        .silver-rim {
+            border: 1px solid rgba(193, 199, 207, 0.15);
+        }
+        .midnight-shadow {
+            box-shadow: 0 8px 32px rgba(2, 12, 27, 0.8);
+        }
+        .glass-panel {
+            background: rgba(14, 31, 61, 0.6);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col font-body-md overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface border-b border-outline-variant/15 shadow-[0_8px_32px_rgba(1,18,48,0.8)] docked full-width top-0 z-50">
+<div class="flex justify-between items-center w-full px-container-padding py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User profile portrait" class="w-full h-full object-cover" data-alt="A sophisticated close-up portrait of a professional chess player with sharp features and intense eyes. The lighting is low-key and dramatic, casting deep shadows across the face while highlighting a crisp, dark suit. The atmosphere is quiet and intellectual, perfectly fitting the midnight royal aesthetic with its deep navy and cool silver tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNhvG9eWFBj_KtgOCjWaXl8aIADJfUrI8BLmIQQwbnmTqVj1zR6w_ZTMnVoQFKvJPVSoUjKznILMIvduD6wi5O1ppPakSlYrB73hv2dgQVjxBpdr5iZHrrCpzBIzoZ7rrVOSlUHw9PPy4lY7-SmFjTYIO0s9OXZwVpYzkwDokdnuvPfGKjjr-Uz64sFtqZL7JD0DrhiFI9T0PShILMYmWTrrMCoZpmEbRfEuBERS_IMq0n5jltRWQ5lqxGV34T8gTE1u4vqmmF10AU"/>
+</div>
+<h1 class="font-headline-lg text-headline-lg font-semibold text-primary tracking-tight">Grandmaster</h1>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-on-surface-variant hover:text-secondary transition-colors duration-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Game Area -->
+<main class="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full p-unit md:p-board-margin gap-gutter md:gap-board-margin">
+<!-- Left Column: Players & Board -->
+<div class="flex-1 flex flex-col gap-gutter">
+<!-- Opponent Profile -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-xl silver-rim">
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="w-12 h-12 rounded-xl silver-rim overflow-hidden bg-surface-container-highest">
+<img alt="Opponent profile" data-alt="A focused business professional sitting in a dark, luxury library setting. The image is captured in a minimalist style with a cold color palette. Soft, cool-white overhead lighting accentuates the silver-rimmed glasses and sharp contours of the face, conveying a sense of strategic depth and intense concentration." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_gg6EGRFkEDr55acsLYts_95hslXK3dgteR7dVluRlf6QY9g13n8v8FFQ9qHtlC7VNAyLZn8cv_32XeOAORA0n7jEXeL6kf-rHV7bvNhwZDOEi-t5LvUzCrQtp_u2d3DApfTxW6M-rtQpeAarcwt63OkmoZf0oknsKR04Ni9vD7nGCN6I7NPk7E65DMf5PmuxgfLPJ543wTKdhzwN_gYugi0Bj4vI0B8sUQtMFQTke2gvXeBzZdzEDUCA7eS4hW0Ips5S59aERuPH"/>
+</div>
+<div class="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full border-2 border-surface-container"></div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">GM Magnus_Midnight</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant opacity-70">Elo: 2845</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-mono tabular-nums">04:12</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full mt-1">
+<div class="bg-secondary h-full rounded-full" style="width: 70%"></div>
+</div>
+</div>
+</div>
+<!-- Chessboard Container -->
+<div class="aspect-square w-full max-w-[680px] mx-auto relative p-2 bg-surface-container-highest rounded-lg midnight-shadow silver-rim">
+<div class="chess-grid w-full h-full border border-outline-variant/20">
+<!-- Row 8 (Top) -->
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_rook</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_knight</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_bishop</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_queen</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_king</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_bishop</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_knight</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40">chess_rook</span></div>
+<!-- Row 7 -->
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface-variant/40">chess_pawn</span></div>
+<!-- Middle Rows (Empty/Moves) -->
+<!-- Simulating a move mid-game -->
+<div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div>
+<div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div>
+<div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div>
+<div class="bg-secondary/20 flex items-center justify-center border-2 border-secondary/40 shadow-[0_0_15px_rgba(149,211,186,0.3)]"><span class="material-symbols-outlined text-3xl text-secondary" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div>
+<div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div><div class="bg-secondary-container/30"></div><div class="bg-primary-container"></div>
+<!-- Row 2 -->
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center shadow-inner"><span class="material-symbols-outlined text-3xl text-on-surface/30">circle</span></div> <!-- Ghost move -->
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-3xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_pawn</span></div>
+<!-- Row 1 -->
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_rook</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_knight</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_bishop</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_queen</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_king</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_bishop</span></div>
+<div class="bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_knight</span></div>
+<div class="bg-secondary-container/30 flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-on-surface" style="font-variation-settings: 'FILL' 1;">chess_rook</span></div>
+</div>
+</div>
+<!-- User Profile -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-xl silver-rim border-t-2 border-secondary/20">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl silver-rim overflow-hidden bg-primary-container">
+<img alt="User profile" data-alt="A portrait of a young chess master in a dimly lit, high-end chess club. The setting features dark oak panels and warm silver accents. The lighting is focused, highlighting the player's calm and determined expression as they look off-camera, embodying the sophisticated Midnight Royal brand identity with high-contrast shadows and deep blue tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSIhWfa-0MljVTvFH7XNqu5868E-zeBFxze0rCs02zUXKYScLY8MFnsAIqBWYGBRAr3hDay8vvvB9lzUTli-8ouRmx1FPQcHsLjOoaeQbTVl11WIh-mUm7OvtKlPpPqCyst68BWHcEnbvO_yGhGGE3owCtwcntcRUY-CP-WpNU47a4ABotHiKRCkL8XkjviXDNYMJVHCcQEIizsugoJBjpb8j9pjjyY4gkCvfrJrrLCMzmFn1qBycBAwV_kdCpFmyIle7pp8nsjl7K"/>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">You (The Grandmaster)</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant opacity-70">Elo: 2790</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-lg text-headline-lg font-bold text-secondary tracking-mono tabular-nums">06:54</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full mt-1">
+<div class="bg-secondary h-full rounded-full" style="width: 90%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Sidebar -->
+<aside class="w-full md:w-80 flex flex-col gap-gutter h-full">
+<!-- Move History -->
+<div class="flex-1 glass-panel rounded-xl silver-rim flex flex-col overflow-hidden">
+<div class="p-4 border-b border-outline-variant/15 flex items-center justify-between">
+<h2 class="font-label-md text-label-md text-primary uppercase tracking-widest">Move History</h2>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">history</span>
+</div>
+<div class="flex-1 overflow-y-auto p-2 font-label-sm">
+<div class="grid grid-cols-3 py-2 px-3 hover:bg-surface-container-highest/30 transition-colors">
+<span class="text-on-surface-variant">1.</span>
+<span class="text-on-surface">e4</span>
+<span class="text-on-surface">e5</span>
+</div>
+<div class="grid grid-cols-3 py-2 px-3 bg-secondary/10 border-l-2 border-secondary">
+<span class="text-on-surface-variant">2.</span>
+<span class="text-on-surface">Nf3</span>
+<span class="text-secondary font-bold italic">Nc6</span>
+</div>
+<div class="grid grid-cols-3 py-2 px-3 hover:bg-surface-container-highest/30 transition-colors">
+<span class="text-on-surface-variant">3.</span>
+<span class="text-on-surface">Bb5</span>
+<span class="text-on-surface">a6</span>
+</div>
+<div class="grid grid-cols-3 py-2 px-3 hover:bg-surface-container-highest/30 transition-colors">
+<span class="text-on-surface-variant">4.</span>
+<span class="text-on-surface">Ba4</span>
+<span class="text-on-surface">Nf6</span>
+</div>
+</div>
+</div>
+<!-- Controls -->
+<div class="flex flex-col gap-3">
+<button class="w-full py-4 bg-secondary text-on-secondary font-label-md text-label-md rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">flag</span>
+                    Resign
+                </button>
+<div class="grid grid-cols-2 gap-3">
+<button class="py-3 border border-outline-variant text-primary font-label-md text-label-md rounded-xl hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">handshake</span>
+                        Draw
+                    </button>
+<button class="py-3 border border-outline-variant text-primary font-label-md text-label-md rounded-xl hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">undo</span>
+                        Takeback
+                    </button>
+</div>
+</div>
+</aside>
+</main>
+<!-- BottomNavBar (Mobile Shell Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface-container/95 backdrop-blur-md border-t border-outline-variant/15 flex justify-around items-center px-4 py-3 shadow-[0_-8px_32px_rgba(1,18,48,0.6)]">
+<div class="flex flex-col items-center justify-center text-secondary bg-secondary-container/10 rounded-full px-4 py-1">
+<span class="material-symbols-outlined">sports_esports</span>
+<span class="font-label-sm text-label-sm">Play</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:text-secondary hover:opacity-100 transition-all">
+<span class="material-symbols-outlined">extension</span>
+<span class="font-label-sm text-label-sm">Puzzles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:text-secondary hover:opacity-100 transition-all">
+<span class="material-symbols-outlined">school</span>
+<span class="font-label-sm text-label-sm">Learn</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:text-secondary hover:opacity-100 transition-all">
+<span class="material-symbols-outlined">leaderboard</span>
+<span class="font-label-sm text-label-sm">Stats</span>
+</div>
+</nav>
+</body></html>

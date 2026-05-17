@@ -3,16 +3,22 @@ import Constants from 'expo-constants';
 const PORT = 3000;
 
 const getHost = (): string => {
+  const manifest =
+    (Constants as any)?.manifest ||
+    (Constants as any)?.manifest2 ||
+    (Constants as any)?.expoConfig;
+
   const debuggerHost =
-    (Constants as any)?.manifest?.debuggerHost ||
-    (Constants as any)?.expoConfig?.extra?.debuggerHost ||
-    (Constants as any)?.manifest2?.debuggerHost;
+    manifest?.debuggerHost ||
+    (Constants as any)?.expoConfig?.extra?.debuggerHost;
 
   if (typeof debuggerHost === 'string' && debuggerHost.includes(':')) {
     return debuggerHost.split(':')[0];
   }
 
-  const extraHost = (Constants as any)?.expoConfig?.extra?.backendHost;
+  const extraHost =
+    manifest?.extra?.backendHost ||
+    (Constants as any)?.expoConfig?.extra?.backendHost;
   if (typeof extraHost === 'string' && extraHost.trim().length > 0) {
     return extraHost.trim();
   }

@@ -7,7 +7,7 @@ const createSocketServer = (httpServer) => {
         cors: { origin: '*', methods: ['GET', 'POST'] },
         pingTimeout: 60000,
         pingInterval: 25000,
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
     });
 };
 exports.createSocketServer = createSocketServer;
