@@ -1,106 +1,161 @@
-// src/api/SocketContext.tsx — React context exposing the singleton socket
+// ============================================================
+// src/api/SocketContext.tsx
+// [BUG-2 FIX] Singleton socket — created once, listeners always
+// cleaned up in useEffect returns. Never re-created on re-render.
+// ============================================================
 import React, {
   createContext,
   useContext,
   useEffect,
-  useMemo,
+  useRef,
   useState,
+  type ReactNode,
 } from 'react';
-import type { Socket } from 'socket.io-client';
-import { getSocket, disconnectSocket } from './socket';
-import { useUserStore } from '@store/userStore';
-import { SOCKET_ON } from '@/constants/socketEvents';
+import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from './config';
+import { useUserStore } from '../store/userStore';
+import { useGameStore } from '../store/gameStore';
+import type {
+  SocketMatchFound,
+  SocketMoveMade,
+  SocketGameOver,
+  SocketDrawOffered,
+  SocketRematchReady,
+  SocketOpponentLeft,
+  SocketError,
+  MoveRecord,
+} from '../types';
+import { Chess } from 'chess.js';
+
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
 interface SocketContextValue {
   socket: Socket | null;
-  connected: boolean;
-  onlineCount: number;
+  status: ConnectionStatus;
+  connect: () => void;
+  disconnect: () => void;
 }
 
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
-  connected: false,
-  onlineCount: 0,
+  status: 'disconnected',
+  connect: () => {},
+  disconnect: () => {},
 });
 
-export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const useSocketContext = () => useContext(SocketContext);
+
+let socketSingleton: Socket | null = null;
+
+export function SocketProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const socketRef = useRef<Socket | null>(null);
   const user = useUserStore((s) => s.user);
-  const token = useUserStore((s) => s.token);
+  const {
+    startGame, applyMove, setGameOver, setDrawOffer,
+    setRematchOffered, resetGame,
+  } = useGameStore.getState();
 
-  const socket = useMemo<Socket | null>(() => {
-    if (!user) return null;
-    const newSocket = getSocket(token, user.id);
-    console.log('[SocketContext] Socket created, connected:', newSocket.connected);
-    return newSocket;
-  }, [user, token]);
+  const connect = () => {
+    if (socketSingleton?.connected) return; // prevent duplicate connections
 
-  const [connected, setConnected] = useState<boolean>(!!socket?.connected);
-  const [onlineCount, setOnlineCount] = useState(0);
+    const sock = io(SOCKET_URL, {
+      transports: ['websocket'],
+      auth: { userId: user?.id, username: user?.username },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+      // Required for React Native Socket.IO compatibility
+      forceNew: false,
+    });
 
-  useEffect(() => {
-    if (!socket) {
-      setConnected(false);
-      return;
-    }
+    socketSingleton = sock;
+    socketRef.current = sock;
 
-    const handleConnect = () => {
-      console.log('[SocketContext] Connected:', socket.id);
-      setConnected(true);
-    };
-    const handleDisconnect = (reason: string) => {
-      console.log('[SocketContext] Disconnected:', reason);
-      setConnected(false);
-      if (reason === 'io server disconnect') {
-        setTimeout(() => socket.connect(), 1000);
+    sock.on('connect', () => setStatus('connected'));
+    sock.on('disconnect', () => setStatus('disconnected'));
+    sock.on('connect_error', (err) => {
+      console.warn('[Socket] connect_error:', err.message);
+      setStatus('disconnected');
+    });
+
+    // --- Global game event listeners ---
+    // These are on the singleton and persist; component-level
+    // listeners (in useChessGame) are added/removed per screen.
+
+    sock.on('match_found', (data: SocketMatchFound) => {
+      const myId = useUserStore.getState().user?.id;
+      const myColor = data.white.id === myId ? 'w' : 'b';
+      const opponent = myColor === 'w' ? data.black : data.white;
+      startGame(
+        data.matchId, myColor, opponent,
+        data.timeControl.initialTime * 1000
+      );
+    });
+
+    sock.on('game_over', (data: SocketGameOver) => {
+      const myId = useUserStore.getState().user?.id;
+      let result: 'win' | 'lose' | 'draw';
+      if (data.result === 'draw') result = 'draw';
+      else result = data.winner === myId ? 'win' : 'lose';
+      setGameOver(result, data.reason);
+    });
+
+    sock.on('draw_offered', (data: SocketDrawOffered) => {
+      setDrawOffer(data.by);
+    });
+
+    sock.on('draw_declined', () => setDrawOffer(null));
+
+    sock.on('rematch_offered', () => setRematchOffered(true));
+
+    sock.on('rematch_ready', (_data: SocketRematchReady) => {
+      // Server signals both accepted — reset and navigate handled in hook
+      resetGame();
+    });
+
+    sock.on('opponent_left', (_data: SocketOpponentLeft) => {
+      setGameOver('win', 'opponent_left');
+    });
+
+    sock.on('error', (data: SocketError) => {
+      console.warn('[Socket] server error:', data.code, data.message);
+    });
+
+    // On reconnect: rejoin active game if any [BUG-2]
+    sock.on('reconnect', () => {
+      const { matchId } = useGameStore.getState();
+      const uid = useUserStore.getState().user?.id;
+      if (matchId && uid) {
+        sock.emit('rejoin_game', { matchId, playerId: uid });
       }
-    };
-    const handleConnectError = (err: Error) => {
-      console.error('[SocketContext] Connection error:', err.message);
-      setConnected(false);
-    };
-    const handleReconnectAttempt = (attempt: number) => {
-      console.log('[SocketContext] Reconnecting... attempt', attempt);
-    };
-    const handleReconnect = () => {
-      console.log('[SocketContext] Reconnected:', socket.id);
-      setConnected(true);
-    };
-    const handleOnline = (data: { count: number }) => setOnlineCount(data.count);
+    });
 
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
-    socket.io.on('reconnect_attempt', handleReconnectAttempt);
-    socket.io.on('reconnect', handleReconnect);
-    socket.on(SOCKET_ON.ONLINE_COUNT, handleOnline);
+    setStatus('connecting');
+  };
 
-    // Check initial connection state
-    if (socket.connected) {
-      setConnected(true);
-    }
+  const disconnect = () => {
+    socketSingleton?.disconnect();
+    socketSingleton = null;
+    socketRef.current = null;
+    setStatus('disconnected');
+  };
 
-    return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('connect_error', handleConnectError);
-      socket.io.off('reconnect_attempt', handleReconnectAttempt);
-      socket.io.off('reconnect', handleReconnect);
-      socket.off(SOCKET_ON.ONLINE_COUNT, handleOnline);
-    };
-  }, [socket]);
-
-  // Tear down socket entirely when the user logs out
+  // Auto-connect when user logs in
   useEffect(() => {
-    if (!user) disconnectSocket();
-  }, [user]);
+    if (user?.id) {
+      connect();
+    } else {
+      disconnect();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-  const value = useMemo(
-    () => ({ socket, connected, onlineCount }),
-    [socket, connected, onlineCount],
+  return (
+    <SocketContext.Provider
+      value={{ socket: socketRef.current, status, connect, disconnect }}
+    >
+      {children}
+    </SocketContext.Provider>
   );
-  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
-};
-
-export function useSocketContext(): SocketContextValue {
-  return useContext(SocketContext);
 }

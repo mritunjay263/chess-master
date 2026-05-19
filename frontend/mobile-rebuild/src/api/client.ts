@@ -1,68 +1,36 @@
-// src/api/client.ts — axios REST client with auth interceptor
+// ============================================================
+// src/api/client.ts — Axios REST client with auth token inject
+// ============================================================
 import axios from 'axios';
-import { API_CONFIG } from './config';
-import { useUserStore } from '@store/userStore';
+import { API_BASE_URL } from './config';
+import { useUserStore } from '../store/userStore';
 
-export const api = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT_MS,
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10_000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use((cfg) => {
+// Inject JWT token on every request
+apiClient.interceptors.request.use((config) => {
   const token = useUserStore.getState().token;
   if (token) {
-    cfg.headers = cfg.headers ?? {};
-    cfg.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return cfg;
+  return config;
 });
 
-// Domain endpoints — keep thin; React Query will own caching/state
-const API_PREFIX = '/api';
-
-export const AuthApi = {
+// ---------- Auth endpoints ----------
+export const authAPI = {
   login: (email: string, password: string) =>
-    api.post<{ token: string; user: import('@/types/index').PlayerInfo }>(`${API_PREFIX}/auth/login`, {
-      email,
-      password,
-    }),
+    apiClient.post<{ user: any; token: string }>('/auth/login', { email, password }),
+
   register: (email: string, password: string, username: string) =>
-    api.post<{ token: string; user: import('@/types/index').PlayerInfo }>(`${API_PREFIX}/auth/register`, {
-      email,
-      password,
-      username,
-    }),
-  me: () => api.get<import('@/types/index').PlayerInfo>(`${API_PREFIX}/auth/profile`),
-};
+    apiClient.post<{ user: any; token: string }>('/auth/register', { email, password, username }),
 
-export const GameApi = {
-  history: (userId: string, page = 1) =>
-    api.get<any[]>(`${API_PREFIX}/game/history`, { params: { limit: 20, offset: (page - 1) * 20 } }),
-  stats: (userId: string) =>
-    api.get<{
-      wins: number;
-      losses: number;
-      draws: number;
-      rating: number;
-      avgGameLengthMs: number;
-      favouriteOpening?: string;
-    }>(`${API_PREFIX}/user/stats`),
-};
+  getProfile: () =>
+    apiClient.get('/users/me'),
 
-export const LeaderboardApi = {
-  top: (limit = 50) => api.get<{ players: import('@/types/index').PlayerInfo[] }>(`${API_PREFIX}/leaderboard`, {
-    params: { limit },
-  }),
-};
-
-export const AIApi = {
-  getMove: (fen: string, difficulty: number = 5) =>
-    api.get<{ from: string; to: string; promotion?: string; evaluation: number }>(`${API_PREFIX}/ai/best-move`, {
-      params: { fen, skillLevel: difficulty },
-    }).then(res => ({
-      data: {
-        move: { from: res.data.from, to: res.data.to, promotion: res.data.promotion },
-        evaluation: res.data.evaluation,
-      },
-    })),
+  getGameHistory: (userId: string, page = 1) =>
+    apiClient.get(`/users/${userId}/games?page=${page}&limit=20`),
 };

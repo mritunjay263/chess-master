@@ -1,41 +1,16 @@
-import Constants from 'expo-constants';
+// ============================================================
+// src/api/config.ts — API base URLs
+// ============================================================
+import { Platform } from 'react-native';
 
-const PORT = 3000;
+// Use 10.0.2.2 on Android emulator (maps to host machine localhost)
+// Use localhost on iOS simulator
+// Override HARDCODED_HOST with your LAN IP for physical device testing
+const HARDCODED_HOST: string | null = null; // e.g. '192.168.1.42'
 
-// Hardcode your machine's LAN IP here for devices (e.g. '192.168.1.100').
-// Set to empty string to auto-detect.
-const HARDCODED_HOST = '';
+const DEFAULT_HOST =
+  HARDCODED_HOST ??
+  (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
 
-const getHost = (): string => {
-  if (HARDCODED_HOST) return HARDCODED_HOST;
-
-  const manifest =
-    (Constants as any)?.manifest ||
-    (Constants as any)?.manifest2 ||
-    (Constants as any)?.expoConfig;
-
-  const debuggerHost =
-    manifest?.debuggerHost ||
-    (Constants as any)?.expoConfig?.extra?.debuggerHost;
-
-  if (typeof debuggerHost === 'string' && debuggerHost.includes(':')) {
-    return debuggerHost.split(':')[0];
-  }
-
-  const extraHost =
-    manifest?.extra?.backendHost ||
-    (Constants as any)?.expoConfig?.extra?.backendHost;
-  if (typeof extraHost === 'string' && extraHost.trim().length > 0) {
-    return extraHost.trim();
-  }
-
-  return 'localhost';
-};
-
-const HOST = getHost();
-
-export const API_CONFIG = {
-  BASE_URL: `http://${HOST}:${PORT}`,
-  SOCKET_URL: `http://${HOST}:${PORT}`,
-  TIMEOUT_MS: 15_000,
-};
+export const API_BASE_URL = `http://${DEFAULT_HOST}:3000`;
+export const SOCKET_URL   = `http://${DEFAULT_HOST}:3000`;
