@@ -1,166 +1,128 @@
-// src/screens/MatchmakingScreen.tsx — joins queue, listens for match_found, navigates to Game
-import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+// src/screens/MatchmakingScreen.tsx — join queue with live socket status
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
-import { Button } from '@components/Button';
-import { useSocket } from '@hooks/useSocket';
-import { useUserStore } from '@store/userStore';
-import { TIME_CONTROLS, TIME_CONTROL_LIST } from '@/constants/timeControls';
+import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack';
+import { useSocketContext } from '@api/SocketContext';
+import { useGameStore } from '@store/gameStore';
 import { SOCKET_EMIT, SOCKET_ON } from '@/constants/socketEvents';
-import { COLORS, RADIUS, SPACING } from '@/constants/theme';
-import { soundManager } from '@utils/soundManager';
-import { SOUND_KEYS } from '@/constants/sounds';
-import type {
-  Color,
-  PlayerInfo,
-  TimeControl,
-  TimeControlKey,
-} from '@/types/index';
+import { COLORS, SPACING, RADIUS } from '@/constants/theme';
 import type { RootStackParamList } from '@/navigation/types';
+import type { TimeControl, PlayerInfo, Color } from '@/types/index';
 
-type Nav = NativeStackNavigationProp<RootStackParamList, 'Matchmaking'>;
+type Nav   = NativeStackNavigationProp<RootStackParamList, 'Matchmaking'>;
+type Route = RouteProp<RootStackParamList, 'Matchmaking'>;
+
+const TIME_CONTROL_MAP: Record<string, TimeControl> = {
+  bullet:    { key: 'bullet',    label: '1 min',  baseSeconds: 60,   incrementSeconds: 0 },
+  blitz3:    { key: 'blitz3',    label: '3 min',  baseSeconds: 180,  incrementSeconds: 2 },
+  blitz5:    { key: 'blitz5',    label: '5 min',  baseSeconds: 300,  incrementSeconds: 3 },
+  rapid:     { key: 'rapid',     label: '10 min', baseSeconds: 600,  incrementSeconds: 5 },
+  classical: { key: 'classical', label: '30 min', baseSeconds: 1800, incrementSeconds: 10 },
+};
+
+type QueueState = 'idle' | 'waiting' | 'found';
 
 export const MatchmakingScreen: React.FC = () => {
-  const nav = useNavigation<Nav>();
-  const route = useRoute<RouteProp<RootStackParamList, 'Matchmaking'>>();
-  const { socket, emit } = useSocket();
-  const user = useUserStore((s) => s.user);
+  const nav   = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const { socket, connected } = useSocketContext();
+  const startMatch = useGameStore((s) => s.startMatch);
 
-  const [selected, setSelected] = useState<TimeControlKey>(
-    route.params?.timeControlKey ?? 'blitz5',
-  );
-  const [searching, setSearching] = useState(false);
+  const tcKey  = route.params?.timeControlKey ?? 'blitz5';
+  const tc     = TIME_CONTROL_MAP[tcKey];
+  const [state,   setState]   = useState<QueueState>('idle');
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Pulsing ring animation
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withTiming(1.3, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
-    );
-  }, [pulse]);
-  const ringStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }], opacity: 2 - pulse.value }));
+  const startTimer = () => {
+    setElapsed(0);
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+  };
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
 
-  // BUG-2 FIX: scope listener creation to this effect so removal is bulletproof
-  useEffect(() => {
-    if (!socket) return;
-
-    const onMatchFound = (data: {
-      matchId: string;
-      white: PlayerInfo;
-      black: PlayerInfo;
-      timeControl: TimeControl;
-    }) => {
-      soundManager.play(SOUND_KEYS.GAME_START);
-      const myColor: Color = user?.id === data.white.id ? 'w' : 'b';
-      nav.replace('Game', {
-        matchId: data.matchId,
-        white: data.white,
-        black: data.black,
-        myColor,
-        timeControl: data.timeControl,
-      });
-    };
-
-    const onError = (err: { code: string; message: string }) => {
-      setSearching(false);
-      // Optional: surface as toast
-      console.warn('Matchmaking error', err);
-    };
-
-    socket.on(SOCKET_ON.MATCH_FOUND, onMatchFound);
-    socket.on(SOCKET_ON.ERROR, onError);
-    return () => {
-      socket.off(SOCKET_ON.MATCH_FOUND, onMatchFound);
-      socket.off(SOCKET_ON.ERROR, onError);
-    };
-  }, [socket, nav, user]);
-
-  const handleSearch = () => {
-    if (!user) return;
-    setSearching(true);
-    emit(SOCKET_EMIT.JOIN_QUEUE, {
-      timeControl: TIME_CONTROLS[selected],
-      playerId: user.id,
-    });
+  const handleJoin = () => {
+    if (!socket || !connected) return;
+    socket.emit(SOCKET_EMIT.JOIN_QUEUE, { timeControlKey: tcKey });
+    setState('waiting');
+    startTimer();
   };
 
   const handleCancel = () => {
-    setSearching(false);
-    emit(SOCKET_EMIT.LEAVE_QUEUE, { playerId: user?.id });
+    if (socket) socket.emit(SOCKET_EMIT.LEAVE_QUEUE);
+    stopTimer();
+    setState('idle');
+    nav.goBack();
   };
 
+  useEffect(() => {
+    if (!socket) return;
+    const onMatchFound = (data: { matchId: string; white: PlayerInfo; black: PlayerInfo; myColor: Color; timeControl: TimeControl; fen?: string }) => {
+      stopTimer();
+      setState('found');
+      startMatch({ matchId: data.matchId, white: data.white, black: data.black, myColor: data.myColor, timeControl: data.timeControl, fen: data.fen });
+      setTimeout(() => {
+        nav.replace('Game', { matchId: data.matchId, white: data.white, black: data.black, myColor: data.myColor, timeControl: data.timeControl });
+      }, 600);
+    };
+    socket.on(SOCKET_ON.MATCH_FOUND, onMatchFound);
+    return () => { socket.off(SOCKET_ON.MATCH_FOUND, onMatchFound); stopTimer(); };
+  }, [socket]);
+
+  const fmtElapsed = (s: number) => `${Math.floor(s / 60).toString().padStart(2,'0')}:${(s % 60).toString().padStart(2,'0')}`;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>{searching ? 'Finding match…' : 'Choose time control'}</Text>
-
-      {searching ? (
-        <View style={styles.ringWrap}>
-          <Animated.View style={[styles.ring, ringStyle]} />
-          <View style={styles.ringCore}>
-            <Text style={styles.ringText}>♟</Text>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.optionsGrid}>
-          {TIME_CONTROL_LIST.map((tc) => (
-            <Pressable
-              key={tc.key}
-              onPress={() => setSelected(tc.key)}
-              style={[styles.option, selected === tc.key && styles.optionActive]}
-            >
-              <Text style={[styles.optionText, selected === tc.key && styles.optionTextActive]}>
-                {tc.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+    <View style={styles.root}>
+      <Text style={styles.crown}>♛</Text>
+      <Text style={styles.tcLabel}>{tc.label} · {tc.key.charAt(0).toUpperCase() + tc.key.slice(1)}</Text>
+      {state === 'idle' && (
+        <>
+          <Text style={styles.sub}>Ready to find a match?</Text>
+          {!connected && <Text style={styles.warn}>⚠ No connection. Check your server.</Text>}
+          <Pressable
+            style={({ pressed }) => [styles.btn, !connected && styles.btnDisabled, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={handleJoin} disabled={!connected}
+          >
+            <Text style={styles.btnText}>JOIN QUEUE</Text>
+          </Pressable>
+        </>
       )}
-
-      {searching ? (
-        <Button label="Cancel" onPress={handleCancel} variant="danger" />
-      ) : (
-        <Button label="Find opponent" onPress={handleSearch} />
+      {state === 'waiting' && (
+        <>
+          <ActivityIndicator color={COLORS.primary} size="large" style={{ marginVertical: SPACING.lg }} />
+          <Text style={styles.waitText}>Finding opponent…</Text>
+          <Text style={styles.timer}>{fmtElapsed(elapsed)}</Text>
+          <Pressable style={styles.cancelBtn} onPress={handleCancel}>
+            <Text style={styles.cancelText}>CANCEL</Text>
+          </Pressable>
+        </>
       )}
-    </SafeAreaView>
+      {state === 'found' && <Text style={styles.foundText}>♟ Match Found!</Text>}
+      {state !== 'found' && (
+        <Pressable style={styles.backLink} onPress={handleCancel}>
+          <Text style={styles.backText}>← Back</Text>
+        </Pressable>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.lg, justifyContent: 'space-around' },
-  title: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '700', textAlign: 'center' },
-  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
-  option: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.pill,
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  optionActive: { backgroundColor: COLORS.primary },
-  optionText: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '500' },
-  optionTextActive: { color: '#000', fontWeight: '700' },
-  ringWrap: { alignItems: 'center', justifyContent: 'center', height: 200 },
-  ring: { position: 'absolute', width: 160, height: 160, borderRadius: 80, borderWidth: 3, borderColor: COLORS.primary },
-  ringCore: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringText: { fontSize: 50, color: COLORS.primary },
+  root: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+  crown:     { fontSize: 72, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  tcLabel:   { color: COLORS.textPrimary, fontSize: 22, fontWeight: '800', letterSpacing: 1, marginBottom: SPACING.md },
+  sub:       { color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACING.xl },
+  warn:      { color: COLORS.danger, fontSize: 13, marginBottom: SPACING.md, textAlign: 'center' },
+  btn:       { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: SPACING.xxl, paddingVertical: SPACING.md },
+  btnDisabled: { opacity: 0.4 },
+  btnText:   { color: COLORS.onPrimary, fontSize: 15, fontWeight: '900', letterSpacing: 2 },
+  waitText:  { color: COLORS.textSecondary, fontSize: 16, fontWeight: '600' },
+  timer:     { color: COLORS.textPrimary, fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'], marginVertical: SPACING.md },
+  cancelBtn: { marginTop: SPACING.md, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm },
+  cancelText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '700', letterSpacing: 1 },
+  foundText: { color: COLORS.success, fontSize: 24, fontWeight: '900', letterSpacing: 2 },
+  backLink:  { position: 'absolute', bottom: 40 },
+  backText:  { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
 });

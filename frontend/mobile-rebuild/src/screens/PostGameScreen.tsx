@@ -1,166 +1,64 @@
-// src/screens/PostGameScreen.tsx — result banner + rematch flow (BUG-6)
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+// src/screens/PostGameScreen.tsx — clean result screen
+import React from 'react';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { Board } from '@components/Board/Board';
-import { MoveHistoryList } from '@components/MoveHistoryList';
-import { Button } from '@components/Button';
-import { Toast } from '@components/Toast';
-import { useChessGame } from '@hooks/useChessGame';
-import { useSocket } from '@hooks/useSocket';
-import { useGameStore } from '@store/gameStore';
-import { COLORS, RADIUS, SPACING } from '@/constants/theme';
-import { SOCKET_EMIT, SOCKET_ON } from '@/constants/socketEvents';
-
-import type { Color, PlayerInfo, TimeControl } from '@/types/index';
+import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
+import { useGameStore } from '@store/gameStore';
+import { COLORS, SPACING, RADIUS } from '@/constants/theme';
 
-type Nav = NativeStackNavigationProp<RootStackParamList, 'PostGame'>;
+type Nav   = NativeStackNavigationProp<RootStackParamList, 'PostGame'>;
 type Route = RouteProp<RootStackParamList, 'PostGame'>;
 
+const REASON_LABEL: Record<string, string> = {
+  checkmate: 'Checkmate', resignation: 'Resignation', timeout: 'Time out',
+  stalemate: 'Stalemate', draw_agreed: 'Draw agreed',
+  threefold_repetition: 'Threefold repetition',
+  insufficient_material: 'Insufficient material',
+  fifty_move_rule: '50-move rule', opponent_left: 'Opponent left',
+};
+
 export const PostGameScreen: React.FC = () => {
-  const nav = useNavigation<Nav>();
+  const nav   = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { matchId, result } = route.params;
-  const { socket, emit } = useSocket();
-  const game = useGameStore();
-  // Show the FINAL position; reuse the cached fen from store
-  const chess = useChessGame({ matchId, initialFen: game.fen });
+  const reset = useGameStore((s) => s.resetGame);
+  const { result } = route.params;
 
-  const [rematchSent, setRematchSent] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const emoji    = result.kind === 'win' ? '🏆' : result.kind === 'lose' ? '💀' : '🤝';
+  const headline = result.kind === 'win' ? 'YOU WIN' : result.kind === 'lose' ? 'YOU LOSE' : 'DRAW';
+  const sub      = REASON_LABEL[result.reason] ?? result.reason;
 
-  // Result banner animation
-  const scale = useSharedValue(0);
-  useEffect(() => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 120 });
-  }, [scale]);
-  const bannerStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  // Rematch socket events (BUG-6)
-  useEffect(() => {
-    if (!socket) return;
-
-    const onRematchOffered = (data?: { matchId: string; by?: Color }) => {
-      const oppColor = data?.by === 'w' ? 'b' : 'w';
-      useGameStore.getState().setRematchOffered(oppColor);
-    };
-    const onRematchReady = (data: {
-      matchId: string;
-      newMatchId: string;
-      white: PlayerInfo;
-      black: PlayerInfo;
-      timeControl: TimeControl;
-      myColor: Color;
-    }) => {
-      if (data.matchId !== matchId) return;
-      // Server has reset the room — clear local state then navigate
-      useGameStore.getState().resetGame();
-      nav.replace('Game', {
-        matchId: data.newMatchId,
-        white: data.white,
-        black: data.black,
-        myColor: data.myColor,
-        timeControl: data.timeControl,
-      });
-    };
-    socket.on(SOCKET_ON.REMATCH_OFFERED, onRematchOffered);
-    socket.on(SOCKET_ON.REMATCH_READY, onRematchReady);
-    return () => {
-      socket.off(SOCKET_ON.REMATCH_OFFERED, onRematchOffered);
-      socket.off(SOCKET_ON.REMATCH_READY, onRematchReady);
-    };
-  }, [socket, matchId, nav]);
-
-  const requestRematch = () => {
-    setRematchSent(true);
-    emit(SOCKET_EMIT.REMATCH_REQUEST, { matchId });
-    setToast('Rematch requested');
-  };
-  const acceptRematch = () => emit(SOCKET_EMIT.REMATCH_ACCEPT, { matchId });
-  const declineRematch = () => {
-    emit(SOCKET_EMIT.REMATCH_DECLINE, { matchId });
-    useGameStore.getState().setRematchOffered(null);
-    setToast('Rematch declined');
-  };
-  const goHome = () => nav.reset({ index: 0, routes: [{ name: 'Main' }] });
-  const goReplay = () => nav.replace('Replay', { matchId });
-
-  const banner =
-    result.kind === 'win' ? { label: 'Victory', color: COLORS.primary } :
-    result.kind === 'lose' ? { label: 'Defeat', color: COLORS.danger } :
-    { label: 'Draw', color: COLORS.textSecondary };
+  const handleHome = () => { reset(); nav.reset({ index: 0, routes: [{ name: 'Main' }] }); };
+  const handleRematch = () => { reset(); nav.replace('Matchmaking'); };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Animated.View style={[styles.banner, { backgroundColor: banner.color }, bannerStyle]}>
-        <Text style={styles.bannerText}>{banner.label}</Text>
-        <Text style={styles.bannerSub}>{prettyReason(result.reason)}</Text>
-      </Animated.View>
-
-      <View style={styles.boardWrap}>
-        <Board
-          pieces={chess.pieces}
-          selectedSquare={null}
-          legalTargets={[]}
-          lastMove={chess.history[chess.history.length - 1]}
-          checkSquare={null}
-          flipped={game.boardFlipped}
-          onSquarePress={() => {}}
-          size={300}
-        />
+    <View style={styles.root}>
+      <Text style={styles.emoji}>{emoji}</Text>
+      <Text style={[styles.headline, result.kind === 'win' && styles.win, result.kind === 'lose' && styles.lose]}>{headline}</Text>
+      <Text style={styles.sub}>{sub}</Text>
+      <View style={styles.btns}>
+        <Pressable style={({ pressed }) => [styles.btn, styles.btnPrimary, { opacity: pressed ? 0.8 : 1 }]} onPress={handleRematch}>
+          <Text style={styles.btnPrimaryText}>PLAY AGAIN</Text>
+        </Pressable>
+        <Pressable style={({ pressed }) => [styles.btn, styles.btnSecondary, { opacity: pressed ? 0.8 : 1 }]} onPress={handleHome}>
+          <Text style={styles.btnSecondaryText}>HOME</Text>
+        </Pressable>
       </View>
-
-      <MoveHistoryList moves={chess.history} />
-
-      <View style={styles.actions}>
-        {game.rematchOfferedBy ? (
-          <>
-            <Button label="Accept rematch" onPress={acceptRematch} style={{ flex: 1 }} />
-            <View style={{ width: SPACING.sm }} />
-            <Button label="Decline" variant="ghost" onPress={declineRematch} style={{ flex: 1 }} />
-          </>
-        ) : (
-          <Button
-            label={rematchSent ? 'Waiting…' : 'Rematch'}
-            onPress={requestRematch}
-            disabled={rematchSent}
-            style={{ flex: 1 }}
-          />
-        )}
-      </View>
-      <View style={styles.actions}>
-        <Button label="Review" variant="secondary" onPress={goReplay} style={{ flex: 1 }} />
-        <View style={{ width: SPACING.sm }} />
-        <Button label="Home" variant="ghost" onPress={goHome} style={{ flex: 1 }} />
-      </View>
-
-      <Toast message={toast} onHide={() => setToast(null)} />
-    </SafeAreaView>
+    </View>
   );
 };
 
-function prettyReason(r: string): string {
-  return r.replace(/_/g, ' ');
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.md },
-  banner: {
-    alignSelf: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.lg,
-    alignItems: 'center',
-    marginVertical: SPACING.md,
-  },
-  bannerText: { color: '#000', fontSize: 28, fontWeight: '800', letterSpacing: 1 },
-  bannerSub: { color: '#000', fontSize: 12, marginTop: 2 },
-  boardWrap: { alignItems: 'center', marginVertical: SPACING.md },
-  actions: { flexDirection: 'row', marginTop: SPACING.sm },
+  root: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+  emoji:    { fontSize: 80, marginBottom: SPACING.md },
+  headline: { fontSize: 38, fontWeight: '900', letterSpacing: 4, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  win:      { color: COLORS.success },
+  lose:     { color: COLORS.danger },
+  sub:      { color: COLORS.textSecondary, fontSize: 14, letterSpacing: 1, marginBottom: SPACING.xxl },
+  btns:     { gap: SPACING.md, width: '100%' },
+  btn:      { borderRadius: RADIUS.md, padding: SPACING.md, alignItems: 'center' },
+  btnPrimary: { backgroundColor: COLORS.primary },
+  btnPrimaryText: { color: COLORS.onPrimary, fontSize: 15, fontWeight: '900', letterSpacing: 2 },
+  btnSecondary: { borderWidth: 1, borderColor: COLORS.border },
+  btnSecondaryText: { color: COLORS.textSecondary, fontSize: 15, fontWeight: '700' },
 });
