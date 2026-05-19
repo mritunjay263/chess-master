@@ -1,82 +1,143 @@
-// src/store/gameStore.ts — BUG-1 fix: fresh Chess() on every startGame/reset
+// src/store/gameStore.ts — BUG-1: reset on matchId change, BUG-2: listener cleanup via zustand
 import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import { Chess } from 'chess.js';
-import type { GameState, PieceColor, ChessMove, Square, GameResult, PlayerInfo, TimeControlOption, PromotionPiece } from '../types';
+import type { ChessMove, GameResult, ChessPlayer, GameStatus, Square, PieceColor, PromotionPiece } from '../types';
 
-const INIT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+interface PendingPromotion { from: Square; to: Square; }
 
-function buildInitial(): GameState {
-  return {
-    matchId: null, fen: INIT_FEN, turn: 'w', moves: [],
-    whiteTime: 0, blackTime: 0, status: 'idle', result: null,
-    white: null, black: null, timeControl: null,
-    selectedSquare: null, legalMoves: [], lastMove: null,
-    pendingPromotion: null, isFlipped: false,
-    drawOfferedBy: null, rematchOffered: false,
-  };
-}
-
-interface GameStore extends GameState {
+interface GameState {
+  // Core
+  matchId: string | null;
+  myColor: PieceColor;
+  status: GameStatus;
+  turn: PieceColor;
+  result: GameResult | null;
+  white: ChessPlayer | null;
+  black: ChessPlayer | null;
+  moves: ChessMove[];
+  // BUG-3: expose the chess.js instance directly so board always reads live state
   _chess: Chess;
-  startGame: (p: { matchId:string; white:PlayerInfo; black:PlayerInfo; timeControl:TimeControlOption; myColor:PieceColor }) => void;
-  applyMove: (m: { from:Square; to:Square; promotion?:PromotionPiece; fen:string; times:{white:number;black:number}; san?:string; captured?:string }) => void;
-  selectSquare: (sq:Square, myColor:PieceColor) => void;
-  setPendingPromotion: (m:{from:Square;to:Square}|null) => void;
-  setResult: (r:GameResult) => void;
-  setTimes: (w:number, b:number) => void;
-  flipBoard: () => void;
-  setDrawOffered: (by:PieceColor|null) => void;
-  setRematchOffered: (v:boolean) => void;
+  // UI
+  selectedSquare: Square | null;
+  legalMoves: Square[];
+  lastMove: { from: Square; to: Square } | null;
+  pendingPromotion: PendingPromotion | null;
+  isFlipped: boolean;
+  alert: string | null;
+  // Timer
+  whiteTime: number;
+  blackTime: number;
+  // Rematch / draw
+  rematchOffered: boolean;
+  drawOfferedBy: PieceColor | null;
+  // Actions
+  setMatch: (matchId: string, myColor: PieceColor, white: ChessPlayer, black: ChessPlayer, timeMs: number) => void;
+  applyMove: (move: ChessMove) => void;
+  setPendingPromotion: (p: PendingPromotion | null) => void;
+  selectSquare: (sq: Square | null) => void;
+  setStatus: (s: GameStatus, result?: GameResult) => void;
+  setWhiteTime: (ms: number) => void;
+  setBlackTime: (ms: number) => void;
+  setAlert: (msg: string | null) => void;
+  setRematchOffered: (v: boolean) => void;
+  setDrawOffered: (color: PieceColor | null) => void;
+  acceptDraw?: () => void;
   resetGame: () => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  ...buildInitial(), _chess: new Chess(),
+const makeChess = () => new Chess();
 
-  startGame: ({ matchId, white, black, timeControl, myColor }) => {
-    // BUG-1: brand new Chess() instance so no stale move history
-    const chess = new Chess();
-    set({ ...buildInitial(), _chess: chess, matchId, white, black, timeControl,
-      whiteTime: timeControl.initial*1000, blackTime: timeControl.initial*1000,
-      status: 'playing', fen: chess.fen(), turn: 'w', isFlipped: myColor==='b' });
-  },
+export const useGameStore = create<GameState>()(immer((set, get) => ({
+  matchId: null,
+  myColor: 'w',
+  status: 'waiting',
+  turn: 'w',
+  result: null,
+  white: null,
+  black: null,
+  moves: [],
+  _chess: makeChess(), // BUG-3: always read board from here
+  selectedSquare: null,
+  legalMoves: [],
+  lastMove: null,
+  pendingPromotion: null,
+  isFlipped: false,
+  alert: null,
+  whiteTime: 300000,
+  blackTime: 300000,
+  rematchOffered: false,
+  drawOfferedBy: null,
 
-  applyMove: ({ from, to, promotion, fen, times, san, captured }) => {
-    const { _chess } = get();
-    try { _chess.move({ from, to, promotion }); } catch { _chess.load(fen); }
-    // BUG-3: always derive state from chess.js, never from local cache
-    set((s) => ({
-      fen: _chess.fen(), turn: _chess.turn() as PieceColor,
-      moves: [...s.moves, { from, to, promotion, san, captured: captured as any }],
-      lastMove: { from, to }, whiteTime: times.white, blackTime: times.black,
-      selectedSquare: null, legalMoves: [], pendingPromotion: null,
-    }));
-  },
+  // BUG-1: full reset on every new matchId
+  setMatch: (matchId, myColor, white, black, timeMs) => set(state => {
+    state.matchId = matchId;
+    state.myColor = myColor;
+    state.white = white;
+    state.black = black;
+    state.status = 'active';
+    state.turn = 'w';
+    state.result = null;
+    state.moves = [];
+    state._chess = makeChess();  // fresh instance
+    state.selectedSquare = null;
+    state.legalMoves = [];
+    state.lastMove = null;
+    state.pendingPromotion = null;
+    state.isFlipped = myColor === 'b';
+    state.alert = null;
+    state.whiteTime = timeMs;
+    state.blackTime = timeMs;
+    state.rematchOffered = false;
+    state.drawOfferedBy = null;
+  }),
 
-  selectSquare: (square, myColor) => {
-    const { _chess, selectedSquare, status, turn } = get();
-    if (status !== 'playing' || turn !== myColor) return;
-    if (selectedSquare && selectedSquare !== square) {
-      const legal = (_chess.moves({ square: selectedSquare as any, verbose:true }) as any[]).map(m=>m.to);
-      if (legal.includes(square)) {
-        const piece = _chess.get(selectedSquare as any);
-        const isPromo = piece?.type==='p' && ((myColor==='w'&&square[1]==='8')||(myColor==='b'&&square[1]==='1'));
-        if (isPromo) { set({ pendingPromotion:{from:selectedSquare,to:square}, selectedSquare:null, legalMoves:[] }); return; }
-        set({ selectedSquare:null, legalMoves:[] }); return;
-      }
+  applyMove: (move) => set(state => {
+    state._chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+    state.moves.push(move);
+    state.turn = state._chess.turn();
+    state.lastMove = { from: move.from, to: move.to };
+    state.selectedSquare = null;
+    state.legalMoves = [];
+    // check/checkmate alerts
+    if (state._chess.isCheckmate()) state.alert = 'checkmate';
+    else if (state._chess.isCheck()) state.alert = 'check';
+    else if (state._chess.isStalemate()) state.alert = 'stalemate';
+    else if (state._chess.isDraw()) state.alert = 'draw';
+    else state.alert = null;
+  }),
+
+  selectSquare: (sq) => set(state => {
+    state.selectedSquare = sq;
+    if (sq) {
+      state.legalMoves = state._chess
+        .moves({ square: sq, verbose: true })
+        .map((m: any) => m.to);
+    } else {
+      state.legalMoves = [];
     }
-    const piece = _chess.get(square as any);
-    if (piece && piece.color===myColor) {
-      set({ selectedSquare:square, legalMoves: (_chess.moves({square:square as any,verbose:true}) as any[]).map(m=>m.to) });
-    } else { set({ selectedSquare:null, legalMoves:[] }); }
-  },
+  }),
 
-  setPendingPromotion: (m) => set({ pendingPromotion:m }),
-  setResult: (result) => set({ result, status:'finished' }),
-  setTimes: (w, b) => set({ whiteTime:w, blackTime:b }),
-  flipBoard: () => set(s => ({ isFlipped:!s.isFlipped })),
-  setDrawOffered: (by) => set({ drawOfferedBy:by }),
-  setRematchOffered: (v) => set({ rematchOffered:v }),
-  // BUG-1: new Chess() so history is truly cleared
-  resetGame: () => set({ ...buildInitial(), _chess:new Chess() }),
-}));
+  setPendingPromotion: (p) => set(state => { state.pendingPromotion = p; }),
+  setStatus: (s, result) => set(state => { state.status = s; if (result) state.result = result; }),
+  setWhiteTime: (ms) => set(state => { state.whiteTime = ms; }),
+  setBlackTime: (ms) => set(state => { state.blackTime = ms; }),
+  setAlert: (msg) => set(state => { state.alert = msg; }),
+  setRematchOffered: (v) => set(state => { state.rematchOffered = v; }),
+  setDrawOffered: (color) => set(state => { state.drawOfferedBy = color; }),
+
+  resetGame: () => set(state => {
+    state.matchId = null;
+    state.status = 'waiting';
+    state.result = null;
+    state.moves = [];
+    state._chess = makeChess();
+    state.selectedSquare = null;
+    state.legalMoves = [];
+    state.lastMove = null;
+    state.pendingPromotion = null;
+    state.alert = null;
+    state.rematchOffered = false;
+    state.drawOfferedBy = null;
+  }),
+})));

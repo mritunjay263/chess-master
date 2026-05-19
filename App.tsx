@@ -1,29 +1,23 @@
-// App.tsx — Root entry point
-import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
+// App.tsx — root entry, BUG-2: socket connects via useSocket inside RootNavigator providers
+import 'react-native-gesture-handler'; // must be first
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { SocketProvider } from './src/hooks/useSocket';
-import { preloadSounds } from './src/utils/soundManager';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 2, staleTime: 30000 } },
+});
 
 export default function App() {
-  useEffect(() => {
-    preloadSounds().catch(console.warn);
-  }, []);
-
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <QueryClientProvider client={queryClient}>
-        <SocketProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
           <RootNavigator />
-        </SocketProvider>
-      </QueryClientProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#0a0a0a' } });

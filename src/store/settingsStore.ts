@@ -1,26 +1,36 @@
 // src/store/settingsStore.ts
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
 import type { AppSettings } from '../types';
 
-export const storage = new MMKV({ id: 'chess-settings' });
-const KEY = 'app_settings';
-const DEFAULTS: AppSettings = {
-  soundEnabled: true, volume: 0.8, hapticsEnabled: true,
-  boardTheme: 'Classic', pieceTheme: 'Merida',
-  showLegalMoves: true, showLastMove: true,
+const mmkv = new MMKV({ id: 'settings-store' });
+const mmkvStorage = {
+  getItem: (key: string) => mmkv.getString(key) ?? null,
+  setItem: (key: string, value: string) => mmkv.set(key, value),
+  removeItem: (key: string) => mmkv.delete(key),
 };
-function load(): AppSettings {
-  try { return { ...DEFAULTS, ...JSON.parse(storage.getString(KEY) ?? '{}') }; }
-  catch { return DEFAULTS; }
+
+const defaults: AppSettings = {
+  soundEnabled: true,
+  hapticsEnabled: true,
+  showLegalMoves: true,
+  showLastMove: true,
+  boardTheme: 'Classic',
+};
+
+interface SettingsState {
+  settings: AppSettings;
+  updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
 }
-interface Store { settings: AppSettings; updateSetting: <K extends keyof AppSettings>(k: K, v: AppSettings[K]) => void; resetSettings: () => void; }
-export const useSettingsStore = create<Store>((set) => ({
-  settings: load(),
-  updateSetting: (k, v) => set((s) => {
-    const updated = { ...s.settings, [k]: v };
-    storage.set(KEY, JSON.stringify(updated));
-    return { settings: updated };
+
+export const useSettingsStore = create<SettingsState>()(persist(
+  (set) => ({
+    settings: defaults,
+    updateSetting: (key, value) => set(s => ({ settings: { ...s.settings, [key]: value } })),
   }),
-  resetSettings: () => { storage.set(KEY, JSON.stringify(DEFAULTS)); set({ settings: DEFAULTS }); },
-}));
+  {
+    name: 'settings-store',
+    storage: createJSONStorage(() => mmkvStorage),
+  },
+));
