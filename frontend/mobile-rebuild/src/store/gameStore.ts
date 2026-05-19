@@ -1,114 +1,114 @@
-// src/store/gameStore.ts — current match state. Reset on every new game.
+// ============================================================
+// src/store/gameStore.ts — Live game state (NOT persisted)
+// [BUG-1 FIX] resetGame() fully wipes all state for new match
+// ============================================================
 import { create } from 'zustand';
 import type {
-  ChessMove,
-  GameResult,
-  PlayerInfo,
-  ServerTimes,
-  TimeControl,
-  Color,
-} from '@/types/index';
-
-interface GameStoreState {
-  matchId: string | null;
-  white: PlayerInfo | null;
-  black: PlayerInfo | null;
-  myColor: Color | null;
-  timeControl: TimeControl | null;
-  fen: string;
-  moves: ChessMove[];
-  turn: Color;
-  whiteTimeMs: number;
-  blackTimeMs: number;
-  lastServerSyncAt: number;
-  result: GameResult | null;
-  drawOfferedBy: Color | null;
-  rematchOfferedBy: Color | null;
-  boardFlipped: boolean;
-
-  // Lifecycle
-  startMatch: (args: {
-    matchId: string;
-    white: PlayerInfo;
-    black: PlayerInfo;
-    myColor: Color;
-    timeControl: TimeControl;
-    fen?: string;
-  }) => void;
-  applyServerMove: (args: { move: ChessMove; fen: string; turn: Color; times: ServerTimes }) => void;
-  setResult: (result: GameResult) => void;
-  setDrawOffered: (by: Color | null) => void;
-  setRematchOffered: (by: Color | null) => void;
-  toggleFlip: () => void;
-  syncTimes: (times: ServerTimes) => void;
-  resetGame: () => void;
-}
+  GameState, PieceColor, MoveRecord, ChessPiece,
+  GameResult, GameEndReason, PlayerInfo, Square,
+} from '../types';
 
 const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-// Snapshot of the "empty" state — re-applied on resetGame() to fully wipe (BUG-1)
-const EMPTY_STATE = {
+const DEFAULT_STATE: GameState = {
   matchId: null,
-  white: null,
-  black: null,
-  myColor: null,
-  timeControl: null,
   fen: INITIAL_FEN,
+  turn: 'w',
   moves: [],
-  turn: 'w' as Color,
-  whiteTimeMs: 0,
-  blackTimeMs: 0,
-  lastServerSyncAt: 0,
+  myColor: null,
+  opponent: null,
+  myTimeMs: 0,
+  opponentTimeMs: 0,
+  status: 'idle',
   result: null,
+  endReason: null,
   drawOfferedBy: null,
-  rematchOfferedBy: null,
-  boardFlipped: false,
+  rematchOffered: false,
+  capturedByMe: [],
+  capturedByOpponent: [],
+  lastMove: null,
+  isCheck: false,
+  isCheckmate: false,
+  isDraw: false,
 };
 
-export const useGameStore = create<GameStoreState>((set, get) => ({
-  ...EMPTY_STATE,
+interface GameStore extends GameState {
+  // Called when match_found fires — resets everything [BUG-1]
+  startGame: (
+    matchId: string,
+    myColor: PieceColor,
+    opponent: PlayerInfo,
+    initialTimeMs: number
+  ) => void;
 
-  startMatch: ({ matchId, white, black, myColor, timeControl, fen }) => {
-    // BUG-1 FIX: nuke prior match state before installing the new one
+  // Apply a move received from server [BUG-3: derive from FEN only]
+  applyMove: (params: {
+    fen: string;
+    move: MoveRecord;
+    turn: PieceColor;
+    myTimeMs: number;
+    opponentTimeMs: number;
+    capturedPiece?: ChessPiece;
+    capturedBy: PieceColor;
+    isCheck: boolean;
+    isCheckmate: boolean;
+    isDraw: boolean;
+  }) => void;
+
+  setGameOver: (result: GameResult, reason: GameEndReason) => void;
+  setDrawOffer: (by: string | null) => void;
+  setRematchOffered: (v: boolean) => void;
+  syncTimes: (myMs: number, opponentMs: number) => void;
+  resetGame: () => void; // [BUG-1 FIX]
+}
+
+export const useGameStore = create<GameStore>()((set) => ({
+  ...DEFAULT_STATE,
+
+  startGame: (matchId, myColor, opponent, initialTimeMs) =>
+    // Full reset then apply match params — fixes BUG-1
     set({
-      ...EMPTY_STATE,
+      ...DEFAULT_STATE,
       matchId,
-      white,
-      black,
       myColor,
-      timeControl,
-      fen: fen ?? INITIAL_FEN,
-      turn: 'w',
-      whiteTimeMs: timeControl.baseSeconds * 1000,
-      blackTimeMs: timeControl.baseSeconds * 1000,
-      lastServerSyncAt: Date.now(),
-      // Board oriented with my pieces at the bottom
-      boardFlipped: myColor === 'b',
-    });
-  },
-
-  applyServerMove: ({ move, fen, turn, times }) => {
-    const moves = [...get().moves, move];
-    set({
-      fen,
-      turn,
-      moves,
-      whiteTimeMs: times.whiteMs,
-      blackTimeMs: times.blackMs,
-      lastServerSyncAt: times.serverTimestamp,
-    });
-  },
-
-  setResult: (result) => set({ result }),
-  setDrawOffered: (by) => set({ drawOfferedBy: by }),
-  setRematchOffered: (by) => set({ rematchOfferedBy: by }),
-  toggleFlip: () => set({ boardFlipped: !get().boardFlipped }),
-  syncTimes: (times) =>
-    set({
-      whiteTimeMs: times.whiteMs,
-      blackTimeMs: times.blackMs,
-      lastServerSyncAt: times.serverTimestamp,
+      opponent,
+      myTimeMs: initialTimeMs,
+      opponentTimeMs: initialTimeMs,
+      status: 'playing',
     }),
 
-  resetGame: () => set({ ...EMPTY_STATE }),
+  applyMove: (params) =>
+    set((state) => {
+      // Captured pieces tracking
+      const captured = params.capturedPiece
+        ? params.capturedBy === state.myColor
+          ? { capturedByMe: [...state.capturedByMe, params.capturedPiece] }
+          : { capturedByOpponent: [...state.capturedByOpponent, params.capturedPiece] }
+        : {};
+
+      return {
+        fen: params.fen,           // BUG-3: board derives from FEN
+        turn: params.turn,
+        moves: [...state.moves, params.move],
+        lastMove: { from: params.move.from, to: params.move.to },
+        myTimeMs: params.myTimeMs,
+        opponentTimeMs: params.opponentTimeMs,
+        isCheck: params.isCheck,
+        isCheckmate: params.isCheckmate,
+        isDraw: params.isDraw,
+        ...captured,
+      };
+    }),
+
+  setGameOver: (result, reason) =>
+    set({ status: 'ended', result, endReason: reason }),
+
+  setDrawOffer: (by) => set({ drawOfferedBy: by }),
+
+  setRematchOffered: (v) => set({ rematchOffered: v }),
+
+  syncTimes: (myMs, opponentMs) =>
+    set({ myTimeMs: myMs, opponentTimeMs: opponentMs }),
+
+  resetGame: () => set({ ...DEFAULT_STATE }), // BUG-1 FIX
 }));

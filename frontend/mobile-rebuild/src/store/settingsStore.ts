@@ -1,74 +1,44 @@
-// src/store/settingsStore.ts — Zustand store persisted in MMKV
+// ============================================================
+// src/store/settingsStore.ts — App settings with MMKV persist
+// ============================================================
 import { create } from 'zustand';
-import { Storage, STORAGE_KEYS } from '@utils/storage';
-import type {
-  SettingsState,
-  BoardThemeKey,
-  PieceThemeKey,
-} from '@/types/index';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { mmkvStorage } from './storage';
+import type { SettingsState } from '../types';
 
-interface SettingsActions {
+interface SettingsStore extends SettingsState {
   setSoundEnabled: (v: boolean) => void;
-  setVolume: (v: number) => void;
+  setSoundVolume: (v: number) => void;
   setHapticsEnabled: (v: boolean) => void;
-  setBoardTheme: (k: BoardThemeKey) => void;
-  setPieceTheme: (k: PieceThemeKey) => void;
   setShowLegalMoves: (v: boolean) => void;
   setShowLastMove: (v: boolean) => void;
-  reset: () => void;
+  setBoardTheme: (v: SettingsState['boardTheme']) => void;
+  setPieceTheme: (v: SettingsState['pieceTheme']) => void;
 }
 
-const DEFAULTS: SettingsState = {
-  soundEnabled: true,
-  volume: 0.8,
-  hapticsEnabled: true,
-  boardTheme: 'classic',
-  pieceTheme: 'merida',
-  showLegalMoves: true,
-  showLastMove: true,
-};
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      // Defaults
+      soundEnabled: true,
+      soundVolume: 0.8,
+      hapticsEnabled: true,
+      showLegalMoves: true,
+      showLastMoveHighlight: true,
+      boardTheme: 'classic',
+      pieceTheme: 'merida',
 
-function loadInitial(): SettingsState {
-  const stored = Storage.getObject<SettingsState>(STORAGE_KEYS.SETTINGS);
-  return { ...DEFAULTS, ...(stored ?? {}) };
-}
-
-function persist(state: SettingsState): void {
-  Storage.setObject(STORAGE_KEYS.SETTINGS, state);
-}
-
-export const useSettingsStore = create<SettingsState & SettingsActions>((set, get) => ({
-  ...loadInitial(),
-  setSoundEnabled: (v) => {
-    set({ soundEnabled: v });
-    persist(get());
-  },
-  setVolume: (v) => {
-    set({ volume: Math.max(0, Math.min(1, v)) });
-    persist(get());
-  },
-  setHapticsEnabled: (v) => {
-    set({ hapticsEnabled: v });
-    persist(get());
-  },
-  setBoardTheme: (k) => {
-    set({ boardTheme: k });
-    persist(get());
-  },
-  setPieceTheme: (k) => {
-    set({ pieceTheme: k });
-    persist(get());
-  },
-  setShowLegalMoves: (v) => {
-    set({ showLegalMoves: v });
-    persist(get());
-  },
-  setShowLastMove: (v) => {
-    set({ showLastMove: v });
-    persist(get());
-  },
-  reset: () => {
-    set({ ...DEFAULTS });
-    persist(get());
-  },
-}));
+      setSoundEnabled:   (v) => set({ soundEnabled: v }),
+      setSoundVolume:    (v) => set({ soundVolume: v }),
+      setHapticsEnabled: (v) => set({ hapticsEnabled: v }),
+      setShowLegalMoves: (v) => set({ showLegalMoves: v }),
+      setShowLastMove:   (v) => set({ showLastMoveHighlight: v }),
+      setBoardTheme:     (v) => set({ boardTheme: v }),
+      setPieceTheme:     (v) => set({ pieceTheme: v }),
+    }),
+    {
+      name: 'settings-storage',
+      storage: createJSONStorage(() => mmkvStorage),
+    }
+  )
+);

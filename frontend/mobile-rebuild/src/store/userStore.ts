@@ -1,50 +1,47 @@
-// src/store/userStore.ts — auth/user state, persisted to MMKV
+// ============================================================
+// src/store/userStore.ts — Auth / user state with MMKV persist
+// ============================================================
 import { create } from 'zustand';
-import { Storage, STORAGE_KEYS } from '@utils/storage';
-import type { PlayerInfo } from '@/types/index';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { mmkvStorage } from './storage';
+import type { User } from '../types';
 
-interface UserStoreState {
-  user: PlayerInfo | null;
+interface UserStore {
+  user: User | null;
   token: string | null;
-  isHydrated: boolean;
-  setUser: (user: PlayerInfo, token?: string | null) => void;
-  loginGuest: (username: string) => void;
+  isAuthenticated: boolean;
+  setUser: (user: User, token: string) => void;
+  setGuest: (username: string) => void;
   logout: () => void;
 }
 
-function loadUser(): PlayerInfo | null {
-  return Storage.getObject<PlayerInfo>(STORAGE_KEYS.USER) ?? null;
-}
+export const useUserStore = create<UserStore>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
 
-function loadToken(): string | null {
-  return Storage.getString(STORAGE_KEYS.AUTH_TOKEN) ?? null;
-}
+      setUser: (user, token) =>
+        set({ user, token, isAuthenticated: true }),
 
-export const useUserStore = create<UserStoreState>((set) => ({
-  user: loadUser(),
-  token: loadToken(),
-  isHydrated: true,
-  setUser: (user, token) => {
-    Storage.setObject(STORAGE_KEYS.USER, user);
-    if (token !== undefined) {
-      if (token) Storage.setString(STORAGE_KEYS.AUTH_TOKEN, token);
-      else Storage.delete(STORAGE_KEYS.AUTH_TOKEN);
+      setGuest: (username) => {
+        // Create a local-only guest user with a random ID
+        const guest: User = {
+          id: `guest_${Date.now()}`,
+          username,
+          rating: 1200,
+          isGuest: true,
+        };
+        set({ user: guest, token: null, isAuthenticated: true });
+      },
+
+      logout: () =>
+        set({ user: null, token: null, isAuthenticated: false }),
+    }),
+    {
+      name: 'user-storage',
+      storage: createJSONStorage(() => mmkvStorage),
     }
-    set({ user, token: token ?? null });
-  },
-  loginGuest: (username) => {
-    const guest: PlayerInfo = {
-      id: `guest_${Date.now().toString(36)}`,
-      username,
-      rating: 1200,
-      isGuest: true,
-    };
-    Storage.setObject(STORAGE_KEYS.USER, guest);
-    set({ user: guest, token: null });
-  },
-  logout: () => {
-    Storage.delete(STORAGE_KEYS.USER);
-    Storage.delete(STORAGE_KEYS.AUTH_TOKEN);
-    set({ user: null, token: null });
-  },
-}));
+  )
+);
