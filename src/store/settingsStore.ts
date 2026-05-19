@@ -1,4 +1,6 @@
 // src/store/settingsStore.ts
+// FIX: added volume field (was missing — soundManager reads settings.volume
+//      and called setVolumeAsync(undefined) which threw an error)
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
@@ -6,17 +8,18 @@ import type { AppSettings } from '../types';
 
 const mmkv = new MMKV({ id: 'settings-store' });
 const mmkvStorage = {
-  getItem: (key: string) => mmkv.getString(key) ?? null,
-  setItem: (key: string, value: string) => mmkv.set(key, value),
-  removeItem: (key: string) => mmkv.delete(key),
+  getItem:    (key: string)         => mmkv.getString(key) ?? null,
+  setItem:    (key: string, v: string) => mmkv.set(key, v),
+  removeItem: (key: string)         => mmkv.delete(key),
 };
 
 const defaults: AppSettings = {
-  soundEnabled: true,
+  soundEnabled:   true,
   hapticsEnabled: true,
   showLegalMoves: true,
-  showLastMove: true,
-  boardTheme: 'Classic',
+  showLastMove:   true,
+  boardTheme:     'Classic',
+  volume:         1.0,   // FIX: was missing — 0.0–1.0 range
 };
 
 interface SettingsState {
@@ -27,7 +30,8 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(persist(
   (set) => ({
     settings: defaults,
-    updateSetting: (key, value) => set(s => ({ settings: { ...s.settings, [key]: value } })),
+    updateSetting: (key, value) =>
+      set(s => ({ settings: { ...s.settings, [key]: value } })),
   }),
   {
     name: 'settings-store',

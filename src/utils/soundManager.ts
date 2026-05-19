@@ -1,31 +1,20 @@
 // src/utils/soundManager.ts
-// FIX: playsInSilentModeIOS: true  — sounds must play even on silent mode (iOS)
-// FIX: staysActiveInBackground: true  — keeps audio session alive during app switch
-// FIX: preload each sound independently so a missing file doesn't crash the whole batch
+// FIX: playsInSilentModeIOS: true  → sounds play even on iPhone silent mode
+// FIX: safe volume read with fallback (settings.volume ?? 1.0)
+// FIX: per-file try/catch so a missing mp3 never crashes the whole batch
 import { Audio } from 'expo-av';
 import { useSettingsStore } from '../store/settingsStore';
 
 type SKey =
-  | 'move_self'
-  | 'move_opponent'
-  | 'capture'
-  | 'check'
-  | 'castle'
-  | 'promote'
-  | 'game_start'
-  | 'game_end_win'
-  | 'game_end_lose'
-  | 'draw'
-  | 'tick'
-  | 'notify';
+  | 'move_self' | 'move_opponent' | 'capture' | 'check'
+  | 'castle' | 'promote' | 'game_start' | 'game_end_win'
+  | 'game_end_lose' | 'draw' | 'tick' | 'notify';
 
 const sounds: Partial<Record<SKey, Audio.Sound>> = {};
-let audioReady = false;
+let _ready = false;
 
-// Require each sound file individually so Metro can bundle them correctly.
-// If a file is missing the require() throws at build time — use try/catch per entry.
-const FILES: Partial<Record<SKey, any>> = {};
-const fileMap: Array<[SKey, () => any]> = [
+// Load each file in a separate try/catch so a missing file is a warning, not a crash
+const FILE_LOADERS: Array<[SKey, () => any]> = [
   ['move_self',     () => require('../assets/sounds/move_self.mp3')],
   ['move_opponent', () => require('../assets/sounds/move_opponent.mp3')],
   ['capture',       () => require('../assets/sounds/capture.mp3')],
@@ -39,25 +28,22 @@ const fileMap: Array<[SKey, () => any]> = [
   ['tick',          () => require('../assets/sounds/tick.mp3')],
   ['notify',        () => require('../assets/sounds/notify.mp3')],
 ];
-for (const [key, loader] of fileMap) {
-  try { FILES[key] = loader(); } catch { /* file missing — skip silently */ }
+
+const FILES: Partial<Record<SKey, any>> = {};
+for (const [key, load] of FILE_LOADERS) {
+  try { FILES[key] = load(); } catch { /* file missing — skip */ }
 }
 
-/**
- * Call once at app startup (e.g. in App.tsx useEffect).
- * Sets up audio session and preloads all available sound files.
- */
 export async function preloadSounds(): Promise<void> {
   try {
-    // FIX: playsInSilentModeIOS TRUE — chess sounds must work on silent iPhone
     await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
+      playsInSilentModeIOS:   true,   // FIX: must be true — plays on silent iPhone
       staysActiveInBackground: false,
-      shouldDuckAndroid: true,
+      shouldDuckAndroid:       true,
     });
-    audioReady = true;
+    _ready = true;
   } catch (e) {
-    console.warn('[SoundManager] setAudioModeAsync failed:', e);
+    console.warn('[Sound] setAudioModeAsync failed:', e);
     return;
   }
 
@@ -66,38 +52,30 @@ export async function preloadSounds(): Promise<void> {
       try {
         const { sound } = await Audio.Sound.createAsync(src, { shouldPlay: false });
         sounds[key] = sound;
+        console.log('[Sound] loaded:', key);
       } catch (e) {
-        console.warn(`[SoundManager] failed to load ${key}:`, e);
+        console.warn('[Sound] failed to load', key, e);
       }
     }),
   );
+  console.log('[Sound] preload complete. Loaded:', Object.keys(sounds).join(', '));
 }
 
-/**
- * Play a sound by key. Safe to call even if the sound failed to load.
- */
 export async function playSound(key: SKey): Promise<void> {
-  if (!audioReady) return;
+  if (!_ready) return;
   const { settings } = useSettingsStore.getState();
   if (!settings.soundEnabled) return;
   const sound = sounds[key];
   if (!sound) return;
   try {
-    await sound.setVolumeAsync(settings.volume ?? 1.0);
-    // replayAsync rewinds to start then plays — correct for short SFX
+    const vol = typeof settings.volume === 'number' ? settings.volume : 1.0; // FIX: safe fallback
+    await sound.setVolumeAsync(vol);
     await sound.replayAsync();
-  } catch (e) {
-    // Sound may have been unloaded — ignore
-  }
+  } catch { /* sound unloaded or unavailable */ }
 }
 
-/**
- * Call when leaving the game screen to free native audio resources.
- */
 export async function unloadSounds(): Promise<void> {
-  await Promise.allSettled(
-    Object.values(sounds).map(s => s?.unloadAsync()),
-  );
-  Object.keys(sounds).forEach(k => delete (sounds as any)[k]);
-  audioReady = false;
+  await Promise.allSettled(Object.values(sounds).map(s => s?.unloadAsync()));
+  (Object.keys(sounds) as SKey[]).forEach(k => delete sounds[k]);
+  _ready = false;
 }

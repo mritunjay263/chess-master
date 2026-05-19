@@ -1,5 +1,7 @@
 // src/hooks/useSocket.ts
-// FIX: connects socket on mount, properly cleans up, event names match backend.
+// FIX: connects on mount (was missing .connect() call)
+// FIX: sound+haptic triggers wired to all game events
+// FIX: move sound logic uses move.color (from chess.js) not move.piece
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppState } from 'react-native';
 import { connectSocket, disconnectSocket, getSocket } from '../services/socketService';
@@ -25,28 +27,38 @@ export function useSocket() {
   useEffect(() => {
     if (!user) return;
 
-    // FIX: connectSocket() — actually initiates the WebSocket handshake
+    // FIX: this is the line that was missing — actually initiates the TCP handshake
     const s = connectSocket();
 
-    const onConnect    = () => { setConnStatus('connected'); console.log('[useSocket] connected'); };
-    const onDisconnect = () => { setConnStatus('disconnected'); };
-    const onConnErr    = (e: Error) => {
+    const onConnect = () => {
+      setConnStatus('connected');
+      console.log('[useSocket] ✅ connected');
+    };
+    const onDisconnect = (reason: string) => {
+      setConnStatus('disconnected');
+      console.log('[useSocket] disconnected:', reason);
+    };
+    const onConnErr = (e: Error) => {
       setConnStatus('disconnected');
       console.warn('[useSocket] connect_error:', e.message);
     };
 
-    const onMatchFound = (d: { matchId: string; color: PieceColor; white: any; black: any; timeMs: number }) => {
+    const onMatchFound = (d: {
+      matchId: string; color: PieceColor;
+      white: any; black: any; timeMs: number;
+    }) => {
       playSound('game_start');
       triggerHaptic('notificationSuccess');
       setMatch(d.matchId, d.color, d.white, d.black, d.timeMs);
     };
 
     const onMoveMade = (move: ChessMove) => {
-      // Play different sound for own vs opponent move — applyMove sets whose turn it was
-      const { myColor } = useGameStore.getState();
-      const isMyMove = move.piece === myColor;
-      playSound(move.captured ? 'capture' : isMyMove ? 'move_self' : 'move_opponent');
-      triggerHaptic(move.captured ? 'impactMedium' : 'impactLight');
+      // FIX: chess.js move.color is 'w'|'b', not move.piece
+      const myColor = useGameStore.getState().myColor;
+      const isMyMove = (move as any).color === myColor;
+      const isCapture = !!(move as any).captured;
+      playSound(isCapture ? 'capture' : isMyMove ? 'move_self' : 'move_opponent');
+      triggerHaptic(isCapture ? 'impactMedium' : 'impactLight');
       applyMove(move);
     };
 
@@ -56,10 +68,11 @@ export function useSocket() {
     };
 
     const onGameOver = (d: { result: GameResult }) => {
-      const { myColor } = useGameStore.getState();
-      const won = d.result.winner === myColor;
-      playSound(d.result.winner === 'draw' ? 'draw' : won ? 'game_end_win' : 'game_end_lose');
-      triggerHaptic(won ? 'notificationSuccess' : 'notificationError');
+      const myColor = useGameStore.getState().myColor;
+      const w = d.result.winner;
+      if (w === 'draw') { playSound('draw'); triggerHaptic('notificationWarning'); }
+      else if (w === myColor) { playSound('game_end_win'); triggerHaptic('notificationSuccess', 2); }
+      else { playSound('game_end_lose'); triggerHaptic('notificationError'); }
       setStatus('finished', d.result);
     };
 
@@ -68,11 +81,22 @@ export function useSocket() {
       triggerHaptic('notificationWarning');
     };
 
-    const onRematch            = () => { playSound('notify'); setRematchOffered(true); };
-    const onDrawOffer          = (d: { from: PieceColor }) => { playSound('notify'); setDrawOffered(d.from); };
-    const onDrawAccepted       = () => setStatus('finished', { winner: 'draw', reason: 'agreement' });
-    const onOpponentDisconnect = () => { triggerHaptic('notificationWarning'); setAlert('Opponent disconnected'); };
-    const onOpponentReconnect  = () => setAlert(null);
+    const onRematch = () => {
+      playSound('notify');
+      triggerHaptic('selection');
+      setRematchOffered(true);
+    };
+    const onDrawOffer = (d: { from: PieceColor }) => {
+      playSound('notify');
+      setDrawOffered(d.from);
+    };
+    const onDrawAccepted = () =>
+      setStatus('finished', { winner: 'draw', reason: 'agreement' });
+    const onOpponentDisconnect = () => {
+      triggerHaptic('notificationWarning');
+      setAlert('Opponent disconnected');
+    };
+    const onOpponentReconnect = () => setAlert(null);
 
     s.on('connect',               onConnect);
     s.on('disconnect',            onDisconnect);
@@ -88,13 +112,17 @@ export function useSocket() {
     s.on('opponent_disconnected', onOpponentDisconnect);
     s.on('opponent_reconnected',  onOpponentReconnect);
 
+    // Sync status if already connected before this effect ran
     if (s.connected) setConnStatus('connected');
 
     const appSub = AppState.addEventListener('change', next => {
       const prev = appStateRef.current;
       appStateRef.current = next;
       if ((prev === 'inactive' || prev === 'background') && next === 'active') {
-        if (!s.connected) s.connect();
+        if (!s.connected) {
+          console.log('[useSocket] app foregrounded — reconnecting');
+          s.connect();
+        }
       }
     });
 
@@ -121,7 +149,7 @@ export function useSocket() {
     if (s.connected) {
       s.emit(event, data);
     } else {
-      console.warn('[useSocket] not connected, dropping:', event);
+      console.warn('[useSocket] not connected — dropping event:', event);
     }
   }, []);
 

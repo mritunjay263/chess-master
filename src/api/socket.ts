@@ -1,56 +1,67 @@
 // src/api/socket.ts
-// SINGLE socket singleton used by the entire app.
-// FIX: reads URL from EXPO_PUBLIC_API_URL (works with Expo tunnel).
-// FIX: passes auth.token + auth.userId so backend middleware identifies the user.
-// FIX: autoConnect is FALSE — call connectSocket() explicitly after login.
+// ─── CRITICAL FIX: Expo Tunnel compatibility ───────────────────────────────
+// Expo tunnel proxies via HTTPS. Socket.IO's WebSocket-only mode FAILS on tunnel
+// because the tunnel proxy blocks the WS upgrade handshake.
+// FIX: always try polling first, then upgrade to websocket.
+// This is the standard Socket.IO behaviour and works on:
+//   • Expo tunnel  (https://xxxx.exp.direct)
+//   • LAN IP       (http://192.168.x.x:3001)
+//   • Android emu  (http://10.0.2.2:3001)
+//   • iOS sim      (http://localhost:3001)
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from './config';
 
 let _socket: Socket | null = null;
 
-/**
- * Returns the singleton Socket.IO instance.
- * Creates it lazily on first call.
- * @param token  JWT token (required for authenticated users)
- * @param userId userId string (for guest fallback)
- */
 export function getSocket(token?: string, userId?: string): Socket {
   if (_socket) return _socket;
 
+  console.log('[Socket] creating instance →', SOCKET_URL);
+
   _socket = io(SOCKET_URL, {
-    transports: ['websocket'],   // websocket only — polling fails on tunnel
-    autoConnect: false,          // explicit connect after auth
+    // CRITICAL: do NOT use ['websocket'] only — polling must be first
+    // so the tunnel proxy handshake succeeds before upgrading
+    transports: ['polling', 'websocket'],
+    autoConnect: false,
     reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 2000,
-    reconnectionDelayMax: 10000,
-    timeout: 15000,
+    reconnectionAttempts: 15,
+    reconnectionDelay: 1500,
+    reconnectionDelayMax: 8000,
+    timeout: 20000,
+    forceNew: false,
     auth: {
-      token:  token  ?? undefined,
+      token: token ?? undefined,
       userId: userId ?? undefined,
     },
   });
 
-  _socket.on('connect',       () => console.log('[Socket] connected to', SOCKET_URL));
-  _socket.on('disconnect',    (r) => console.log('[Socket] disconnected:', r));
-  _socket.on('connect_error', (e) => console.warn('[Socket] connect_error:', e.message, '| URL:', SOCKET_URL));
+  _socket.on('connect', () =>
+    console.log('[Socket] ✅ connected  id:', _socket?.id, ' url:', SOCKET_URL),
+  );
+  _socket.on('disconnect', reason =>
+    console.log('[Socket] ❌ disconnected:', reason),
+  );
+  _socket.on('connect_error', err =>
+    console.warn('[Socket] connect_error:', err.message, '\n  → URL:', SOCKET_URL,
+      '\n  → Make sure EXPO_PUBLIC_API_URL is set to your tunnel URL in .env'),
+  );
 
   return _socket;
 }
 
-/**
- * Call this after the user logs in / enters as guest.
- * Re-creates the socket if auth changed (e.g. user switched accounts).
- */
 export function connectSocket(token?: string, userId?: string): Socket {
-  // If auth changed, tear down old socket and create fresh one
-  if (_socket && (_socket.auth as any)?.token !== token) {
+  // Tear down if auth changed
+  if (_socket && ((_socket.auth as any)?.token ?? null) !== (token ?? null)) {
+    console.log('[Socket] auth changed — recreating socket');
     _socket.removeAllListeners();
     _socket.disconnect();
     _socket = null;
   }
   const s = getSocket(token, userId);
-  if (!s.connected && !s.active) s.connect();
+  if (!s.connected && !s.active) {
+    console.log('[Socket] calling .connect()');
+    s.connect();
+  }
   return s;
 }
 
@@ -59,5 +70,6 @@ export function disconnectSocket(): void {
     _socket.removeAllListeners();
     _socket.disconnect();
     _socket = null;
+    console.log('[Socket] disconnected and destroyed');
   }
 }
