@@ -3,7 +3,7 @@
 // IMPORTANT (BUG-3): the visible board is derived 100% from the `pieces`
 // prop, which is produced from chess.js .board(). We NEVER track piece
 // positions in component state.
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { BoardSquare } from './Square';
 import { AnimatedPiece } from './AnimatedPiece';
@@ -12,7 +12,6 @@ import { BOARD_THEMES, COLORS } from '@/constants/theme';
 import { coordsToSquare } from '@utils/chessHelpers';
 import type { BoardPiece, ChessMove, Square } from '@/types/index';
 
-const SCREEN = Dimensions.get('window');
 const BOARD_PADDING = 8;
 const BORDER_WIDTH = 2;
 
@@ -41,8 +40,18 @@ export const Board: React.FC<Props> = ({
   const settings = useSettingsStore();
   const theme = BOARD_THEMES[settings.boardTheme];
 
-  // Tile size: derived from board size minus border/padding
-  const boardSize = size ?? Math.min(SCREEN.width - BOARD_PADDING * 2, 480);
+  const [screenDim, setScreenDim] = useState(Dimensions.get('window'));
+  useEffect(() => {
+    const handler = ({ window }: { window: { width: number; height: number } }) => setScreenDim(window);
+    const sub = Dimensions.addEventListener('change', handler);
+    return () => sub.remove();
+  }, []);
+
+  // Board size: responsive — fills shorter axis at 92%, capped at 600
+  const boardSize = size ?? Math.min(
+    Math.min(screenDim.width, screenDim.height) * 0.92,
+    600,
+  );
   const innerSize = boardSize - BORDER_WIDTH * 2;
   const tileSize = innerSize / 8;
 

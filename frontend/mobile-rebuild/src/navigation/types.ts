@@ -1,10 +1,11 @@
-// src/navigation/types.ts — typed route params
 import type { Color, PlayerInfo, TimeControl, GameResult } from '@/types/index';
 
 export type RootStackParamList = {
   Splash: undefined;
   Auth: undefined;
   Main: undefined;
+  Settings: undefined;
+  Profile: { userId: string } | undefined;
   Matchmaking: { timeControlKey?: import('@/types/index').TimeControlKey } | undefined;
   SinglePlayer: undefined;
   Game: {
@@ -22,7 +23,8 @@ export type RootStackParamList = {
 };
 
 export type TabParamList = {
-  Home: undefined;
-  Profile: undefined;
-  Settings: undefined;
+  Play: undefined;
+  Puzzles: undefined;
+  Learn: undefined;
+  Leaderboard: undefined;
 };

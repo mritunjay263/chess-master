@@ -50,16 +50,28 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleDisconnect = (reason: string) => {
       console.log('[SocketContext] Disconnected:', reason);
       setConnected(false);
+      if (reason === 'io server disconnect') {
+        setTimeout(() => socket.connect(), 1000);
+      }
     };
     const handleConnectError = (err: Error) => {
       console.error('[SocketContext] Connection error:', err.message);
       setConnected(false);
+    };
+    const handleReconnectAttempt = (attempt: number) => {
+      console.log('[SocketContext] Reconnecting... attempt', attempt);
+    };
+    const handleReconnect = () => {
+      console.log('[SocketContext] Reconnected:', socket.id);
+      setConnected(true);
     };
     const handleOnline = (data: { count: number }) => setOnlineCount(data.count);
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
+    socket.io.on('reconnect_attempt', handleReconnectAttempt);
+    socket.io.on('reconnect', handleReconnect);
     socket.on(SOCKET_ON.ONLINE_COUNT, handleOnline);
 
     // Check initial connection state
@@ -71,6 +83,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
+      socket.io.off('reconnect_attempt', handleReconnectAttempt);
+      socket.io.off('reconnect', handleReconnect);
       socket.off(SOCKET_ON.ONLINE_COUNT, handleOnline);
     };
   }, [socket]);

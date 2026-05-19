@@ -1,6 +1,7 @@
 // src/screens/MatchmakingScreen.tsx — joins queue, listens for match_found, navigates to Game
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -101,7 +102,7 @@ export const MatchmakingScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>{searching ? 'Finding match…' : 'Choose time control'}</Text>
 
       {searching ? (
@@ -114,13 +115,15 @@ export const MatchmakingScreen: React.FC = () => {
       ) : (
         <View style={styles.optionsGrid}>
           {TIME_CONTROL_LIST.map((tc) => (
-            <Text
+            <Pressable
               key={tc.key}
               onPress={() => setSelected(tc.key)}
               style={[styles.option, selected === tc.key && styles.optionActive]}
             >
-              {tc.label}
-            </Text>
+              <Text style={[styles.optionText, selected === tc.key && styles.optionTextActive]}>
+                {tc.label}
+              </Text>
+            </Pressable>
           ))}
         </View>
       )}
@@ -130,7 +133,7 @@ export const MatchmakingScreen: React.FC = () => {
       ) : (
         <Button label="Find opponent" onPress={handleSearch} />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -139,16 +142,16 @@ const styles = StyleSheet.create({
   title: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '700', textAlign: 'center' },
   optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: SPACING.sm },
   option: {
-    color: COLORS.textPrimary,
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.pill,
-    fontSize: 14,
     minWidth: 110,
-    textAlign: 'center',
+    alignItems: 'center',
   },
-  optionActive: { backgroundColor: COLORS.primary, color: '#000', fontWeight: '700' },
+  optionActive: { backgroundColor: COLORS.primary },
+  optionText: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '500' },
+  optionTextActive: { color: '#000', fontWeight: '700' },
   ringWrap: { alignItems: 'center', justifyContent: 'center', height: 200 },
   ring: { position: 'absolute', width: 160, height: 160, borderRadius: 80, borderWidth: 3, borderColor: COLORS.primary },
   ringCore: {

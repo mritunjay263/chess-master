@@ -24,7 +24,7 @@ export const SplashScreen: React.FC = () => {
       nav.reset({ index: 0, routes: [{ name: user ? 'Main' : 'Auth' }] });
     }, 900);
     return () => clearTimeout(id);
-  }, [nav, scale, user]);
+  }, [nav, user]);
 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -33,7 +33,8 @@ export const SplashScreen: React.FC = () => {
       <Animated.View style={[styles.logo, style]}>
         <Text style={styles.crown}>♚</Text>
       </Animated.View>
-      <Text style={styles.title}>ChessMate</Text>
+      <Text style={styles.title}>GRANDMASTER</Text>
+      <Text style={styles.subtitle}>STRATEGIC EXCELLENCE</Text>
     </View>
   );
 };
@@ -44,10 +45,27 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.surfaceContainer,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(149,211,186,0.2)',
   },
   crown: { fontSize: 72, color: COLORS.primary },
-  title: { color: COLORS.textPrimary, fontSize: 28, fontWeight: '800', marginTop: 24, letterSpacing: 2 },
+  title: {
+    color: COLORS.textPrimary,
+    fontSize: 32,
+    fontWeight: '600',
+    marginTop: 24,
+    letterSpacing: 2,
+    fontFamily: 'Georgia',
+  },
+  subtitle: {
+    color: COLORS.outline,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 4,
+    marginTop: 8,
+    textTransform: 'uppercase',
+  },
 });

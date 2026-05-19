@@ -1,25 +1,15 @@
-// src/screens/ReplayScreen.tsx — step through completed game with prev/next + autoplay
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Switch } from 'react-native';
-import Slider from '@react-native-async-storage/async-storage'; // placeholder — see below
 import { Board } from '@components/Board/Board';
 import { Button } from '@components/Button';
-import { useChessGame } from '@hooks/useChessGame';
 import { useGameStore } from '@store/gameStore';
 import { COLORS, SPACING } from '@/constants/theme';
 import { Chess } from 'chess.js';
 import { piecesFromChess } from '@utils/chessHelpers';
 import type { BoardPiece } from '@/types/index';
 
-// NOTE: react-native-community/slider is the standard slider; to avoid a hard
-// dependency on it we render a simple +/- speed control. Replace with Slider
-// when adding @react-native-community/slider to dependencies.
-const _UnusedSlider = Slider;
-
 export const ReplayScreen: React.FC = () => {
   const game = useGameStore();
-  // The completed game's moves are in the store; replay against a fresh chess.
-  const chess = useChessGame({ matchId: game.matchId });
   const allMoves = game.moves;
 
   const [cursor, setCursor] = useState<number>(allMoves.length);
@@ -27,7 +17,6 @@ export const ReplayScreen: React.FC = () => {
   const [speedMs, setSpeedMs] = useState(900);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Local chess instance recomputed by replaying first `cursor` moves
   const [pieces, setPieces] = useState<BoardPiece[]>([]);
   useEffect(() => {
     const c = new Chess();
@@ -39,7 +28,6 @@ export const ReplayScreen: React.FC = () => {
     setPieces(piecesFromChess(c));
   }, [cursor, allMoves]);
 
-  // Autoplay
   useEffect(() => {
     if (!autoplay) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -99,9 +87,6 @@ export const ReplayScreen: React.FC = () => {
           <Button label="+" variant="ghost" onPress={() => setSpeedMs((s) => Math.max(200, s - 200))} />
         </View>
       </View>
-
-      {/* keep chess hook referenced to satisfy lint */}
-      <View style={{ height: 0 }}>{!!chess.fen && null}</View>
     </View>
   );
 };

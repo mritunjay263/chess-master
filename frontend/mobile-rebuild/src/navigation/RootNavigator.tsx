@@ -9,6 +9,8 @@ import { SinglePlayerScreen } from '@screens/SinglePlayerScreen';
 import { GameScreen } from '@screens/GameScreen';
 import { PostGameScreen } from '@screens/PostGameScreen';
 import { ReplayScreen } from '@screens/ReplayScreen';
+import { SettingsScreen } from '@screens/SettingsScreen';
+import { ProfileScreen } from '@screens/ProfileScreen';
 import { TabNavigator } from './TabNavigator';
 import { COLORS } from '@/constants/theme';
 import type { RootStackParamList } from './types';
@@ -42,6 +44,8 @@ export const RootNavigator: React.FC = () => (
       <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       <Stack.Screen name="Matchmaking" component={MatchmakingScreen} options={{ title: 'Finding match' }} />
       <Stack.Screen name="SinglePlayer" component={SinglePlayerScreen} options={{ title: 'vs Computer' }} />
       <Stack.Screen name="Game" component={GameScreen} options={{ headerShown: false }} />

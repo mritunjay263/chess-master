@@ -9,14 +9,13 @@
 //   BUG-6: rematch flow with explicit accept/decline + resetGame
 //   BUG-7: check/checkmate/draw announced via banner + haptic + sound
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Board } from '@components/Board/Board';
-import { PlayerInfoBar } from '@components/PlayerInfoBar';
 import { PromotionModal } from '@components/PromotionModal';
 import { CheckBanner } from '@components/CheckBanner';
 import { MoveHistoryList } from '@components/MoveHistoryList';
@@ -49,13 +48,14 @@ export const GameScreen: React.FC = () => {
 
   const user = useUserStore((s) => s.user);
   const haptics = useHaptics();
-  const { socket, emit } = useSocket();
+  const { socket, connected, emit } = useSocket();
 
   // Detect single player vs AI mode
   const isAI = matchId.startsWith('ai-');
   const aiDifficulty = isAI ? parseInt(matchId.split('-')[2] || '5', 10) : 5;
   const aiColor = white.id === 'ai' ? 'w' : 'b';
 
+  const insets = useSafeAreaInsets();
   const game = useGameStore();
   const chess = useChessGame({ matchId });
   const [toast, setToast] = useState<string | null>(null);
@@ -390,75 +390,190 @@ export const GameScreen: React.FC = () => {
     ? 'check'
     : null;
 
+  const formatTime = (ms: number) => {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Header */}
       <View style={styles.topBar}>
-        <Pressable onPress={() => nav.goBack()} hitSlop={12}>
-          <Text style={styles.barButton}>‹ Back</Text>
-        </Pressable>
-        <Pressable onPress={handleFlip} hitSlop={12}>
-          <Text style={styles.barButton}>⇅ Flip</Text>
-        </Pressable>
-      </View>
-
-      <PlayerInfoBar
-        player={opponent}
-        side={oppColor}
-        timeMs={oppTimeMs}
-        totalSeconds={totalSeconds}
-        active={chess.turn === oppColor}
-        captures={oppColor === 'w' ? chess.captured.white : chess.captured.black}
-        advantage={oppColor === 'w' ? Math.max(0, chess.material) : Math.max(0, -chess.material)}
-      />
-
-      <CheckBanner status={status} />
-
-      <View style={styles.boardWrap}>
-        <Board
-          pieces={chess.pieces}
-          selectedSquare={chess.selectedSquare}
-          legalTargets={chess.legalTargets}
-          lastMove={lastMove}
-          checkSquare={chess.checkSquare}
-          flipped={game.boardFlipped}
-          onSquarePress={handleSquarePress}
-        />
-      </View>
-
-      <PlayerInfoBar
-        player={myColor === 'w' ? white : black}
-        side={myColor}
-        timeMs={myTimeMs}
-        totalSeconds={totalSeconds}
-        active={chess.turn === myColor}
-        captures={myColor === 'w' ? chess.captured.white : chess.captured.black}
-        advantage={myColor === 'w' ? Math.max(0, chess.material) : Math.max(0, -chess.material)}
-      />
-
-      <View style={styles.actions}>
-        <Button
-          label={resignConfirm ? 'Tap again to resign' : 'Resign'}
-          variant={resignConfirm ? 'danger' : 'secondary'}
-          onPress={handleResign}
-          style={{ flex: 1 }}
-        />
-        <View style={{ width: SPACING.sm }} />
-        {game.drawOfferedBy && game.drawOfferedBy !== myColor ? (
-          <>
-            <Button label="Accept draw" onPress={handleAcceptDraw} style={{ flex: 1 }} />
-            <View style={{ width: SPACING.sm }} />
-            <Button label="Decline" onPress={handleDeclineDraw} variant="ghost" style={{ flex: 1 }} />
-          </>
-        ) : (
-          <Button label="Offer draw" variant="secondary" onPress={handleOfferDraw} style={{ flex: 1 }} />
-        )}
-      </View>
-
-      {chess.history.length > 0 && (
-        <View style={styles.history}>
-          <MoveHistoryList moves={chess.history} />
+        <View style={styles.topBarLeft}>
+          <Pressable onPress={() => nav.goBack()} hitSlop={12}>
+            <Text style={styles.topBarMenu}>☰</Text>
+          </Pressable>
+          <Text style={styles.topBarTitle}>GRANDMASTER</Text>
         </View>
-      )}
+        <Pressable style={styles.topBarAvatar} onPress={handleFlip}>
+          <Text style={styles.topBarAvatarText}>
+            {user?.username?.[0]?.toUpperCase() ?? 'G'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Opponent Bar */}
+        <View style={styles.playerBar}>
+          <View style={styles.playerBarLeft}>
+            <View style={styles.playerAvatar}>
+              <Text style={styles.playerAvatarText}>
+                {opponent.username[0]?.toUpperCase() ?? '?'}
+              </Text>
+            </View>
+            <View>
+              <View style={styles.playerNameRow}>
+                <Text style={styles.playerBarName}>{opponent.username}</Text>
+                <View style={styles.eloBadge}>
+                  <Text style={styles.eloBadgeText}>{opponent.rating}</Text>
+                </View>
+              </View>
+              <Text style={styles.playerCountry}>Norway</Text>
+            </View>
+          </View>
+          <View style={styles.timerContainer}>
+            <Text style={styles.timerSide}>{oppColor === 'w' ? 'White' : 'Black'}</Text>
+            <Text style={styles.timerValue}>{formatTime(oppTimeMs)}</Text>
+          </View>
+        </View>
+
+        <CheckBanner status={status} />
+
+        <View style={styles.boardWrap}>
+          <Board
+            pieces={chess.pieces}
+            selectedSquare={chess.selectedSquare}
+            legalTargets={chess.legalTargets}
+            lastMove={lastMove}
+            checkSquare={chess.checkSquare}
+            flipped={game.boardFlipped}
+            onSquarePress={handleSquarePress}
+          />
+        </View>
+
+        {/* User Bar */}
+        <View style={[styles.playerBar, styles.playerBarUser]}>
+          <View style={styles.playerBarLeft}>
+            <View style={[styles.playerAvatar, styles.playerAvatarUser]}>
+              <Text style={styles.playerAvatarText}>
+                {(myColor === 'w' ? white : black).username[0]?.toUpperCase() ?? '?'}
+              </Text>
+            </View>
+            <View>
+              <View style={styles.playerNameRow}>
+                <Text style={styles.playerBarName}>
+                  {(myColor === 'w' ? white : black).username}
+                </Text>
+                <View style={[styles.eloBadge, styles.eloBadgeUser]}>
+                  <Text style={[styles.eloBadgeText, styles.eloBadgeTextUser]}>
+                    {(myColor === 'w' ? white : black).rating}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.playerCountry}>United Kingdom</Text>
+            </View>
+          </View>
+          <View style={[styles.timerContainer, styles.timerContainerUser]}>
+            <Text style={[styles.timerSide, styles.timerSideUser]}>
+              {myColor === 'w' ? 'White' : 'Black'}
+            </Text>
+            <Text style={[styles.timerValue, styles.timerValueUser]}>
+              {formatTime(myTimeMs)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Move History & Controls */}
+        <View style={styles.historyCard}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>Move History</Text>
+            <Text style={styles.historyIcon}>⏱</Text>
+          </View>
+          {chess.history.length > 0 ? (
+            <View style={styles.historyList}>
+              <MoveHistoryList moves={chess.history} />
+            </View>
+          ) : (
+            <View style={styles.historyEmpty}>
+              <Text style={styles.historyEmptyText}>No moves yet</Text>
+            </View>
+          )}
+
+          {/* Game Status */}
+          <View style={styles.gameStatus}>
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Accuracy</Text>
+              <Text style={styles.statusValue}>—</Text>
+            </View>
+            <View style={styles.statusDivider} />
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Advantage</Text>
+              <Text
+                style={[
+                  styles.statusValue,
+                  chess.material >= 0
+                    ? styles.statusAdvantage
+                    : { color: COLORS.danger },
+                ]}
+              >
+                {chess.material >= 0 ? '+' : ''}
+                {chess.material.toFixed(1)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actions}>
+            {game.drawOfferedBy && game.drawOfferedBy !== myColor ? (
+              <>
+                <Pressable style={styles.actionAccept} onPress={handleAcceptDraw}>
+                  <Text style={styles.actionAcceptText}>Accept Draw</Text>
+                </Pressable>
+                <Pressable style={styles.actionDecline} onPress={handleDeclineDraw}>
+                  <Text style={styles.actionDeclineText}>Decline</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable style={styles.actionDraw} onPress={handleOfferDraw}>
+                <Text style={styles.actionDrawText}>Draw</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={[
+                styles.actionResign,
+                resignConfirm && styles.actionResignConfirm,
+              ]}
+              onPress={handleResign}
+            >
+              <Text
+                style={[
+                  styles.actionResignText,
+                  resignConfirm && styles.actionResignTextConfirm,
+                ]}
+              >
+                {resignConfirm ? 'Tap again' : 'Resign'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Connection Status */}
+      <View style={[styles.connBadge, { top: insets.top + 8 }]}>
+        <View style={[styles.connDot, { backgroundColor: connected ? '#4CAF50' : '#FF5252' }]} />
+        <Text style={styles.connText}>{connected ? 'Connected' : 'Offline'}</Text>
+      </View>
+
+      {/* LIVE Indicator */}
+      <View style={[styles.liveBadge, { top: insets.top + 44 }]}>
+        <View style={styles.liveDot} />
+        <Text style={styles.liveText}>LIVE</Text>
+      </View>
 
       <PromotionModal
         visible={!!chess.pendingPromotion}
@@ -473,10 +588,181 @@ export const GameScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: SPACING.sm },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.xs },
-  barButton: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
-  boardWrap: { alignItems: 'center', marginVertical: SPACING.sm },
-  actions: { flexDirection: 'row', marginTop: SPACING.sm },
-  history: { marginTop: SPACING.sm },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 32 },
+
+  // Top Bar
+  topBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(68,71,77,0.15)',
+  },
+  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topBarMenu: { fontSize: 22, color: COLORS.textPrimary },
+  topBarTitle: {
+    fontFamily: 'Georgia', fontSize: 16, fontWeight: '600',
+    color: COLORS.textPrimary, letterSpacing: 0.5,
+  },
+  topBarAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: 1, borderColor: 'rgba(185,199,228,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.surfaceContainerHigh,
+  },
+  topBarAvatarText: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
+
+  // Player Bar
+  playerBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow, padding: 16,
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(185,199,228,0.15)',
+    marginTop: 8,
+  },
+  playerBarUser: {
+    borderTopWidth: 1, borderTopColor: 'rgba(149,211,186,0.2)',
+  },
+  playerBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  playerAvatar: {
+    width: 44, height: 44, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(185,199,228,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.surfaceContainerHigh,
+  },
+  playerAvatarUser: {
+    borderColor: 'rgba(149,211,186,0.3)',
+  },
+  playerAvatarText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '700' },
+  playerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  playerBarName: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '600' },
+  eloBadge: {
+    paddingHorizontal: 6, paddingVertical: 2,
+    backgroundColor: COLORS.onPrimaryContainer,
+    borderRadius: 4,
+  },
+  eloBadgeText: { fontSize: 10, fontWeight: '700', color: COLORS.textPrimary },
+  eloBadgeUser: { backgroundColor: COLORS.secondaryContainer },
+  eloBadgeTextUser: { color: COLORS.secondary },
+  playerCountry: { color: COLORS.textSecondary, fontSize: 11, marginTop: 2 },
+  timerContainer: {
+    backgroundColor: COLORS.surfaceContainerHigh, paddingHorizontal: 20,
+    paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(68,71,77,0.3)',
+    alignItems: 'center',
+  },
+  timerContainerUser: { borderColor: 'rgba(149,211,186,0.3)' },
+  timerSide: { fontSize: 10, fontWeight: '500', color: COLORS.outline, letterSpacing: 1 },
+  timerSideUser: { color: COLORS.secondary },
+  timerValue: {
+    fontFamily: 'Georgia', fontSize: 24, fontWeight: '600',
+    color: COLORS.textPrimary, fontVariant: ['tabular-nums'],
+  },
+  timerValueUser: { color: COLORS.secondary },
+
+  // Board
+  boardWrap: { alignItems: 'center', marginVertical: 12 },
+
+  // History Card
+  historyCard: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 12, overflow: 'hidden', marginTop: 12,
+    borderWidth: 1, borderColor: 'rgba(185,199,228,0.15)',
+  },
+  historyHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, backgroundColor: COLORS.surfaceContainer,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(68,71,77,0.3)',
+  },
+  historyTitle: {
+    fontSize: 13, fontWeight: '600', letterSpacing: 1,
+    color: COLORS.primary, textTransform: 'uppercase',
+  },
+  historyIcon: { fontSize: 16, color: COLORS.outline },
+  historyList: { maxHeight: 200 },
+  historyEmpty: { padding: 24, alignItems: 'center' },
+  historyEmptyText: { color: COLORS.textSecondary, fontSize: 13 },
+
+  // Game Status
+  gameStatus: {
+    flexDirection: 'row', padding: 16,
+    borderTopWidth: 1, borderTopColor: 'rgba(68,71,77,0.3)',
+  },
+  statusItem: { flex: 1, alignItems: 'center' },
+  statusLabel: { fontSize: 11, color: COLORS.textSecondary, marginBottom: 4 },
+  statusValue: {
+    fontFamily: 'Georgia', fontSize: 22, fontWeight: '600',
+    color: COLORS.secondary,
+  },
+  statusAdvantage: { color: COLORS.primary },
+  statusDivider: {
+    width: 1, backgroundColor: 'rgba(68,71,77,0.3)',
+  },
+
+  // Actions
+  actions: { flexDirection: 'row', gap: 8, padding: 16, paddingTop: 0 },
+  actionDraw: {
+    flex: 1, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.secondary, borderRadius: 8,
+  },
+  actionDrawText: {
+    color: COLORS.onSecondary, fontSize: 13, fontWeight: '600',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  actionAccept: {
+    flex: 1, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.secondary, borderRadius: 8,
+  },
+  actionAcceptText: {
+    color: COLORS.onSecondary, fontSize: 13, fontWeight: '600',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  actionDecline: {
+    flex: 1, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.outlineVariant, borderRadius: 8,
+  },
+  actionDeclineText: {
+    color: COLORS.textPrimary, fontSize: 13, fontWeight: '500',
+  },
+  actionResign: {
+    flex: 1, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.danger, borderRadius: 8,
+  },
+  actionResignConfirm: { backgroundColor: COLORS.errorContainer },
+  actionResignText: {
+    color: COLORS.danger, fontSize: 13, fontWeight: '500',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  actionResignTextConfirm: { color: COLORS.textPrimary },
+
+  // Connection Status
+  connBadge: {
+    position: 'absolute', right: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(68,71,77,0.3)',
+  },
+  connDot: {
+    width: 8, height: 8, borderRadius: 4,
+  },
+  connText: {
+    fontSize: 11, fontWeight: '600', color: COLORS.textPrimary,
+    letterSpacing: 0.5,
+  },
+
+  // Live Badge
+  liveBadge: {
+    position: 'absolute', right: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(149,211,186,0.3)',
+  },
+  liveDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.secondary,
+  },
+  liveText: {
+    fontSize: 11, fontWeight: '600', color: COLORS.secondary,
+    letterSpacing: 1,
+  },
 });

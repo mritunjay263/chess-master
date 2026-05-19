@@ -46,9 +46,9 @@ export const PostGameScreen: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    const onRematchOffered = () => {
-      // Server announces opponent wants a rematch
-      useGameStore.getState().setRematchOffered('opp' as Color);
+    const onRematchOffered = (data?: { matchId: string; by?: Color }) => {
+      const oppColor = data?.by === 'w' ? 'b' : 'w';
+      useGameStore.getState().setRematchOffered(oppColor);
     };
     const onRematchReady = (data: {
       matchId: string;

@@ -1,6 +1,7 @@
 // src/screens/ProfileScreen.tsx — avatar, stats, infinite-scroll history (via React Query)
 import React from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { GameApi } from '@api/client';
 import { useUserStore } from '@store/userStore';
@@ -21,18 +22,18 @@ export const ProfileScreen: React.FC = () => {
     initialPageParam: 1,
     queryFn: ({ pageParam = 1 }) =>
       GameApi.history(user!.id, pageParam as number).then((r) => r.data),
-    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
+    getNextPageParam: (last, all) => (Array.isArray(last) && last.length === 20 ? all.length + 1 : undefined),
   });
 
   if (!user) return null;
 
-  const games = historyQuery.data?.pages.flatMap((p) => p.games) ?? [];
+  const games = historyQuery.data?.pages.flatMap((p) => p) ?? [];
   const stats = statsQuery.data;
   const total = (stats?.wins ?? 0) + (stats?.losses ?? 0) + (stats?.draws ?? 0);
   const winPct = total > 0 ? Math.round(((stats?.wins ?? 0) / total) * 100) : 0;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarLetter}>{user.username[0]?.toUpperCase() ?? '?'}</Text>
@@ -80,7 +81,7 @@ export const ProfileScreen: React.FC = () => {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

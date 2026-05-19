@@ -10,13 +10,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chessmate.app"
+      "bundleIdentifier": "com.chessmate.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0F1418"
       },
-      "package": "com.chessmate.app"
+      "package": "com.chessmate.app",
+      "usesCleartextTraffic": true
     },
     "extra": {
       "backendHost": "192.168.1.7"

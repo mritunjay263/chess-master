@@ -52,7 +52,7 @@ class AIService {
 
         if (moveValue > bestValue) {
           bestValue = moveValue;
-          bestMove = chess.move(move) || null;
+          bestMove = chess.move(move);
           chess.undo();
         }
       }
@@ -61,6 +61,7 @@ class AIService {
         return {
           from: bestMove.from,
           to: bestMove.to,
+          promotion: bestMove.promotion || undefined,
           evaluation: bestValue,
         };
       }

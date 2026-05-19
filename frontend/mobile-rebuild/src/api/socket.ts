@@ -9,20 +9,21 @@ let socket: Socket | null = null;
  * Auth is attached lazily so we can refresh tokens.
  */
 export function getSocket(authToken?: string | null, userId?: string | null): Socket {
-  if (socket && socket.connected) return socket;
   if (socket) {
-    // Already created but not connected — update auth and reconnect.
     socket.auth = { token: authToken ?? undefined, userId: userId ?? undefined };
-    if (!socket.active) socket.connect();
+    if (!socket.connected) {
+      if (!socket.active) socket.connect();
+    }
     return socket;
   }
   socket = io(API_CONFIG.SOCKET_URL, {
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     autoConnect: true,
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
+    timeout: 10000,
     auth: { token: authToken ?? undefined, userId: userId ?? undefined },
   });
   return socket;

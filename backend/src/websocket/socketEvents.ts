@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { v4 as uuidv4 } from 'uuid';
 import { gameService } from '../services/game.service';
 import { matchmakingService } from '../services/matchmaking.service';
 import { verifyToken, JwtPayload } from '../utils/jwt';
@@ -9,6 +10,7 @@ const logger = createLogger('socket-events');
 
 const userSockets = new Map<string, string>();
 const gameSockets = new Map<string, Set<string>>();
+const rematchRequests = new Map<string, Set<string>>(); // gameId -> Set of userIds who want rematch
 
 export const setupSocketEvents = (io: Server): void => {
   io.use((socket, next) => {
@@ -164,9 +166,6 @@ export const setupSocketEvents = (io: Server): void => {
         if (!id) return;
         const session = await gameService.getGameSession(id);
         if (!session || session.status !== 'in_progress') return;
-        const updatedSession = { ...session, status: 'draw' };
-        (gameService as any).setSession?.(id, updatedSession);
-        // Use the gameService's handleGameEnd
         await gameService.acceptDraw(id);
       } catch (e) { logger.error('accept_draw error', { error: (e as Error).message }); }
     });
@@ -178,6 +177,68 @@ export const setupSocketEvents = (io: Server): void => {
         logger.info('Draw declined', { gameId: id, by: user.userId });
         socket.to(id).emit('draw_declined', { matchId: id });
       } catch (e) { logger.error('decline_draw error', { error: (e as Error).message }); }
+    });
+
+    socket.on('rematch_request', async (data: { matchId?: string; gameId?: string }) => {
+      try {
+        const id = data.matchId || data.gameId;
+        if (!id) return;
+        const session = await gameService.getGameSession(id);
+        if (!session) return;
+        if (user.userId !== session.whitePlayerId && user.userId !== session.blackPlayerId) return;
+        if (!rematchRequests.has(id)) rematchRequests.set(id, new Set());
+        rematchRequests.get(id)!.add(user.userId);
+        const opponentId = user.userId === session.whitePlayerId ? session.blackPlayerId : session.whitePlayerId;
+        const byColor = user.userId === session.whitePlayerId ? 'w' : 'b';
+        io.to(opponentId).emit('rematch_offered', { matchId: id, by: byColor });
+        logger.info('Rematch requested', { gameId: id, by: user.userId });
+      } catch (e) { logger.error('rematch_request error', { error: (e as Error).message }); }
+    });
+
+    socket.on('rematch_accept', async (data: { matchId?: string; gameId?: string }) => {
+      try {
+        const id = data.matchId || data.gameId;
+        if (!id) return;
+        const session = await gameService.getGameSession(id);
+        if (!session) return;
+        if (user.userId !== session.whitePlayerId && user.userId !== session.blackPlayerId) return;
+        const reqs = rematchRequests.get(id);
+        if (!reqs) return;
+        reqs.add(user.userId);
+        const opponentId = user.userId === session.whitePlayerId ? session.blackPlayerId : session.whitePlayerId;
+        // Both players accepted? Create new game
+        if (reqs.has(session.whitePlayerId) && reqs.has(session.blackPlayerId)) {
+          rematchRequests.delete(id);
+          const newGameId = uuidv4();
+          const newSession = await gameService.createGameSession(
+            session.whitePlayerId, session.blackPlayerId, newGameId,
+            { whiteUsername: session.whitePlayerUsername, blackUsername: session.blackPlayerUsername, whiteElo: session.whiteElo, blackElo: session.blackElo },
+          );
+          if (!newSession) return;
+          // Determine colors: swap
+          const payload = {
+            matchId: newGameId,
+            newMatchId: newGameId,
+            white: { id: session.whitePlayerId, username: session.whitePlayerUsername, rating: session.whiteElo },
+            black: { id: session.blackPlayerId, username: session.blackPlayerUsername, rating: session.blackElo },
+            timeControl: { key: 'blitz5', label: 'Blitz 5+0', baseSeconds: 300, incrementSeconds: 0 },
+            myColor: 'w' as const,
+          };
+          // Send to each player with their own myColor
+          io.to(session.whitePlayerId).emit('rematch_ready', { ...payload, myColor: 'w' });
+          io.to(session.blackPlayerId).emit('rematch_ready', { ...payload, myColor: 'b' });
+          logger.info('Rematch accepted, new game created', { oldGameId: id, newGameId });
+        }
+      } catch (e) { logger.error('rematch_accept error', { error: (e as Error).message }); }
+    });
+
+    socket.on('rematch_decline', async (data: { matchId?: string; gameId?: string }) => {
+      try {
+        const id = data.matchId || data.gameId;
+        if (!id) return;
+        rematchRequests.delete(id);
+        logger.info('Rematch declined', { gameId: id, by: user.userId });
+      } catch (e) { logger.error('rematch_decline error', { error: (e as Error).message }); }
     });
 
     socket.on('disconnect', async () => {

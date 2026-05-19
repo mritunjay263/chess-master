@@ -2,7 +2,13 @@ import Constants from 'expo-constants';
 
 const PORT = 3000;
 
+// Hardcode your machine's LAN IP here for devices (e.g. '192.168.1.100').
+// Set to empty string to auto-detect.
+const HARDCODED_HOST = '';
+
 const getHost = (): string => {
+  if (HARDCODED_HOST) return HARDCODED_HOST;
+
   const manifest =
     (Constants as any)?.manifest ||
     (Constants as any)?.manifest2 ||
