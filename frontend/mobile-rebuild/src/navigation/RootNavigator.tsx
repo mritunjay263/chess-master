@@ -1,16 +1,12 @@
-// src/navigation/RootNavigator.tsx — top-level stack: Splash → Auth/Main → Game/PostGame/Replay
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SplashScreen } from '@screens/SplashScreen';
 import { AuthScreen } from '@screens/AuthScreen';
 import { MatchmakingScreen } from '@screens/MatchmakingScreen';
-import { SinglePlayerScreen } from '@screens/SinglePlayerScreen';
 import { GameScreen } from '@screens/GameScreen';
 import { PostGameScreen } from '@screens/PostGameScreen';
-import { ReplayScreen } from '@screens/ReplayScreen';
 import { SettingsScreen } from '@screens/SettingsScreen';
-import { ProfileScreen } from '@screens/ProfileScreen';
 import { TabNavigator } from './TabNavigator';
 import { COLORS } from '@/constants/theme';
 import type { RootStackParamList } from './types';
@@ -25,9 +21,9 @@ const navTheme = {
     background: COLORS.background,
     card: COLORS.surface,
     text: COLORS.textPrimary,
-    primary: COLORS.primary,
+    primary: COLORS.textPrimary,
     border: COLORS.border,
-    notification: COLORS.accent,
+    notification: COLORS.textPrimary,
   },
 };
 
@@ -37,7 +33,7 @@ export const RootNavigator: React.FC = () => (
       initialRouteName="Splash"
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.background },
-        headerTitleStyle: { color: COLORS.textPrimary },
+        headerTitleStyle: { color: COLORS.textPrimary, fontWeight: '700' },
         contentStyle: { backgroundColor: COLORS.background },
       }}
     >
@@ -45,12 +41,9 @@ export const RootNavigator: React.FC = () => (
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="Matchmaking" component={MatchmakingScreen} options={{ title: 'Finding match' }} />
-      <Stack.Screen name="SinglePlayer" component={SinglePlayerScreen} options={{ title: 'vs Computer' }} />
+      <Stack.Screen name="Matchmaking" component={MatchmakingScreen} options={{ title: 'Matchmaking' }} />
       <Stack.Screen name="Game" component={GameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PostGame" component={PostGameScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Replay" component={ReplayScreen} options={{ title: 'Replay' }} />
     </Stack.Navigator>
   </NavigationContainer>
 );

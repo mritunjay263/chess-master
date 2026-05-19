@@ -50,8 +50,20 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "testMatch": [
+      "**/src/__tests__/**/*.test.ts?(x)"
+    ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg|chess.js)/)"
-    ]
+      "node_modules/(?!(jest-)?react-native|@react-native|react-native|@react-navigation|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|expo-font|expo-asset|expo-modules-core|react-native-svg|socket.io-client)"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@api/(.*)$": "<rootDir>/src/api/$1",
+      "^@components/(.*)$": "<rootDir>/src/components/$1",
+      "^@store/(.*)$": "<rootDir>/src/store/$1",
+      "^@hooks/(.*)$": "<rootDir>/src/hooks/$1",
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+      "^@navigation/(.*)$": "<rootDir>/src/navigation/$1"
+    }
   }
 }

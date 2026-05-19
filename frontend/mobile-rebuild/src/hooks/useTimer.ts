@@ -1,68 +1,73 @@
-// src/hooks/useTimer.ts — local countdown that is corrected on every server sync
-// BUG-5 FIX: server timestamps are the source of truth. We tick locally between
-// syncs but every move_made re-sets the canonical times.
 import { useEffect, useRef, useState } from 'react';
-import type { Color } from '@/types/index';
 
 interface UseTimerArgs {
-  whiteMs: number;
-  blackMs: number;
-  /** epoch ms at which whiteMs/blackMs were captured by the server */
-  lastServerSyncAt: number;
-  /** whose clock is currently running */
-  activeColor: Color;
-  /** when true, both clocks freeze (game over, paused, modal etc.) */
-  paused: boolean;
-  /** invoked exactly once when active player's clock reaches 0 */
-  onFlag?: (color: Color) => void;
+  whiteMs?: number;
+  blackMs?: number;
+  baseWhiteMs?: number;
+  baseBlackMs?: number;
+  lastServerSyncAt?: number;
+  serverTimestamp?: number;
+  turn: 'w' | 'b';
+  activeColor?: 'w' | 'b';
+  isGameOver?: boolean;
+  onFlag?: (color: 'w' | 'b') => void;
 }
 
-export interface TimerSnapshot {
-  whiteMs: number;
-  blackMs: number;
-  flagged: Color | null;
-}
-
-const TICK_INTERVAL_MS = 100;
+const TICK_MS = 250;
 
 export function useTimer({
   whiteMs,
   blackMs,
-  lastServerSyncAt,
+  baseWhiteMs,
+  baseBlackMs,
+  turn,
   activeColor,
-  paused,
+  isGameOver = false,
   onFlag,
-}: UseTimerArgs): TimerSnapshot {
-  const [snapshot, setSnapshot] = useState<TimerSnapshot>({
-    whiteMs,
-    blackMs,
-    flagged: null,
-  });
-  const flagFiredRef = useRef(false);
+}: UseTimerArgs) {
+  const startWhite = whiteMs ?? baseWhiteMs ?? 0;
+  const startBlack = blackMs ?? baseBlackMs ?? 0;
+  const tickingColor = activeColor ?? turn;
+
+  const [displayWhiteMs, setDisplayWhiteMs] = useState(startWhite);
+  const [displayBlackMs, setDisplayBlackMs] = useState(startBlack);
+  const remainingRef = useRef({ white: startWhite, black: startBlack });
+  const flaggedRef = useRef(false);
 
   useEffect(() => {
-    // Re-baseline on every server sync — reset the "flag fired" guard too
-    flagFiredRef.current = false;
-    setSnapshot({ whiteMs, blackMs, flagged: null });
-  }, [whiteMs, blackMs, lastServerSyncAt, activeColor]);
+    remainingRef.current = { white: startWhite, black: startBlack };
+    flaggedRef.current = false;
+    setDisplayWhiteMs(startWhite);
+    setDisplayBlackMs(startBlack);
 
-  useEffect(() => {
-    if (paused) return;
-    const baseSyncAt = lastServerSyncAt || Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - baseSyncAt;
-      const nextWhite = activeColor === 'w' ? Math.max(0, whiteMs - elapsed) : whiteMs;
-      const nextBlack = activeColor === 'b' ? Math.max(0, blackMs - elapsed) : blackMs;
-      const flagged =
-        nextWhite === 0 ? 'w' : nextBlack === 0 ? 'b' : null;
-      setSnapshot({ whiteMs: nextWhite, blackMs: nextBlack, flagged });
-      if (flagged && !flagFiredRef.current) {
-        flagFiredRef.current = true;
-        onFlag?.(flagged);
+    if (isGameOver) return;
+
+    const id = setInterval(() => {
+      if (tickingColor === 'w') {
+        remainingRef.current.white = Math.max(0, remainingRef.current.white - TICK_MS);
+      } else {
+        remainingRef.current.black = Math.max(0, remainingRef.current.black - TICK_MS);
       }
-    }, TICK_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [whiteMs, blackMs, lastServerSyncAt, activeColor, paused, onFlag]);
 
-  return snapshot;
+      setDisplayWhiteMs(remainingRef.current.white);
+      setDisplayBlackMs(remainingRef.current.black);
+
+      if (!flaggedRef.current) {
+        if (tickingColor === 'w' && remainingRef.current.white === 0) {
+          flaggedRef.current = true;
+          onFlag?.('w');
+        } else if (tickingColor === 'b' && remainingRef.current.black === 0) {
+          flaggedRef.current = true;
+          onFlag?.('b');
+        }
+      }
+    }, TICK_MS);
+
+    return () => clearInterval(id);
+  }, [startWhite, startBlack, tickingColor, isGameOver, onFlag]);
+
+  return {
+    whiteMs: displayWhiteMs,
+    blackMs: displayBlackMs,
+  };
 }

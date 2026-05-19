@@ -5,9 +5,7 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   Settings: undefined;
-  Profile: { userId: string } | undefined;
   Matchmaking: { timeControlKey?: import('@/types/index').TimeControlKey } | undefined;
-  SinglePlayer: undefined;
   Game: {
     matchId: string;
     white: PlayerInfo;
@@ -19,12 +17,8 @@ export type RootStackParamList = {
     matchId: string;
     result: GameResult;
   };
-  Replay: { matchId: string };
 };
 
 export type TabParamList = {
   Play: undefined;
-  Puzzles: undefined;
-  Learn: undefined;
-  Leaderboard: undefined;
 };
