@@ -1,43 +1,41 @@
 /**
  * matchmaking.scheduler.ts
- * FIX: emits 'match_found' (not 'game_found') with the shape useSocket.ts expects:
- *   { matchId, color, white, black, timeMs }
+ * FIX: use matchmakingService.matchPlayers() (FIFO pairing built-in)
+ *      instead of calling getQueue() which does not exist.
+ *      Emits 'match_found' with shape useSocket.ts expects:
+ *        { matchId, color, white, black, timeMs }
  */
 import { Server } from 'socket.io';
 import { matchmakingService } from '../services/matchmaking.service';
 import { gameService } from '../services/game.service';
 import { createLogger } from '../utils/logger';
-import { v4 as uuidv4 } from 'uuid';
 
-const logger = createLogger('matchmaking-scheduler');
+const logger      = createLogger('matchmaking-scheduler');
 const INTERVAL_MS = 2000;
 const DEFAULT_TIME_MS = 300_000; // 5 min
 
 export function startMatchmakingScheduler(io: Server): void {
   setInterval(async () => {
     try {
-      const queue = await matchmakingService.getQueue();
-      if (queue.length < 2) return;
+      // FIX: matchPlayers() pops two players from the queue and returns them
+      const match = await matchmakingService.matchPlayers();
+      if (!match) return; // fewer than 2 players queued
 
-      // Simple FIFO pairing (can be replaced with ELO-based)
-      const p1 = queue[0];
-      const p2 = queue[1];
+      const { white, black, gameId: matchId } = match;
 
-      await matchmakingService.removeFromQueue(p1.userId);
-      await matchmakingService.removeFromQueue(p2.userId);
-
-      const matchId = uuidv4();
-      // Randomly assign colors
-      const [white, black] = Math.random() < 0.5 ? [p1, p2] : [p2, p1];
-
-      const session = await gameService.createGameSession(
+      await gameService.createGameSession(
         white.userId, black.userId, matchId,
-        { whiteUsername: white.username, blackUsername: black.username, whiteElo: white.elo, blackElo: black.elo },
+        {
+          whiteUsername: white.username,
+          blackUsername: black.username,
+          whiteElo:      white.elo,
+          blackElo:      black.elo,
+        },
       );
 
       const timeMs = DEFAULT_TIME_MS;
 
-      // FIX: emit 'match_found' with flat shape matching useSocket.ts onMatchFound handler
+      // Emit 'match_found' — frontend useSocket.ts onMatchFound handler
       io.to(white.userId).emit('match_found', {
         matchId,
         color: 'w',
