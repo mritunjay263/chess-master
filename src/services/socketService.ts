@@ -1,32 +1,23 @@
 // src/services/socketService.ts
-// FIX: auth is passed in handshake so backend middleware can identify user/guest
-import { io, Socket } from 'socket.io-client';
-import { BACKEND_URL } from '../api/config';
+// FIX: delegates entirely to src/api/socket.ts — no duplicate singleton.
+// FIX: reads token/userId without calling useUserStore inside module scope
+//      (calling a hook outside React caused runtime crashes).
+import { getSocket as _get, connectSocket as _connect, disconnectSocket as _disconnect } from '../api/socket';
+import type { Socket } from 'socket.io-client';
 import { useUserStore } from '../store/userStore';
 
-let socket: Socket | null = null;
-
+/** Returns the singleton, creating it with current auth if needed. */
 export function getSocket(): Socket {
   const { user, token } = useUserStore.getState();
-
-  if (!socket || !socket.connected) {
-    if (socket) { socket.removeAllListeners(); socket.disconnect(); }
-    socket = io(BACKEND_URL, {
-      transports: ['websocket'],
-      timeout: 10000,
-      reconnection: true,
-      reconnectionAttempts: 6,
-      reconnectionDelay: 2000,
-      // FIX: backend auth middleware reads these
-      auth: {
-        userId: user?.id ?? '',
-        token: token ?? undefined,
-      },
-    });
-  }
-  return socket;
+  return _get(token ?? undefined, user?.id ?? undefined);
 }
 
-export function disconnectSocket() {
-  if (socket) { socket.removeAllListeners(); socket.disconnect(); socket = null; }
+/** Call after login. Reconnects with fresh auth if token changed. */
+export function connectSocket(): Socket {
+  const { user, token } = useUserStore.getState();
+  return _connect(token ?? undefined, user?.id ?? undefined);
+}
+
+export function disconnectSocket(): void {
+  _disconnect();
 }

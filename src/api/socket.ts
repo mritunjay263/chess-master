@@ -1,32 +1,63 @@
-// src/api/socket.ts — BUG-2: singleton, created once, cleaned on disconnect
+// src/api/socket.ts
+// SINGLE socket singleton used by the entire app.
+// FIX: reads URL from EXPO_PUBLIC_API_URL (works with Expo tunnel).
+// FIX: passes auth.token + auth.userId so backend middleware identifies the user.
+// FIX: autoConnect is FALSE — call connectSocket() explicitly after login.
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from './config';
 
-const SERVER_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-let socketInstance: Socket | null = null;
+let _socket: Socket | null = null;
 
-export function getSocket(token?: string): Socket {
-  if (socketInstance) return socketInstance;
-  socketInstance = io(SERVER_URL, {
-    transports: ['websocket'],
-    autoConnect: false,
+/**
+ * Returns the singleton Socket.IO instance.
+ * Creates it lazily on first call.
+ * @param token  JWT token (required for authenticated users)
+ * @param userId userId string (for guest fallback)
+ */
+export function getSocket(token?: string, userId?: string): Socket {
+  if (_socket) return _socket;
+
+  _socket = io(SOCKET_URL, {
+    transports: ['websocket'],   // websocket only — polling fails on tunnel
+    autoConnect: false,          // explicit connect after auth
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000,
-    auth: token ? { token } : undefined,
+    reconnectionDelayMax: 10000,
+    timeout: 15000,
+    auth: {
+      token:  token  ?? undefined,
+      userId: userId ?? undefined,
+    },
   });
-  socketInstance.on('connect_error', e => console.warn('[Socket] error', e.message));
-  socketInstance.on('connect', () => console.log('[Socket] connected'));
-  socketInstance.on('disconnect', r => console.log('[Socket] disconnected', r));
-  return socketInstance;
+
+  _socket.on('connect',       () => console.log('[Socket] connected to', SOCKET_URL));
+  _socket.on('disconnect',    (r) => console.log('[Socket] disconnected:', r));
+  _socket.on('connect_error', (e) => console.warn('[Socket] connect_error:', e.message, '| URL:', SOCKET_URL));
+
+  return _socket;
 }
 
-export function connectSocket(token?: string): Socket {
-  const s = getSocket(token);
+/**
+ * Call this after the user logs in / enters as guest.
+ * Re-creates the socket if auth changed (e.g. user switched accounts).
+ */
+export function connectSocket(token?: string, userId?: string): Socket {
+  // If auth changed, tear down old socket and create fresh one
+  if (_socket && (_socket.auth as any)?.token !== token) {
+    _socket.removeAllListeners();
+    _socket.disconnect();
+    _socket = null;
+  }
+  const s = getSocket(token, userId);
   if (!s.connected && !s.active) s.connect();
   return s;
 }
 
 export function disconnectSocket(): void {
-  socketInstance?.disconnect();
-  socketInstance = null;
+  if (_socket) {
+    _socket.removeAllListeners();
+    _socket.disconnect();
+    _socket = null;
+  }
 }
